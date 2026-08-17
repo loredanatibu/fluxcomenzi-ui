@@ -16,7 +16,7 @@ export class NavComponent {
   readonly isAuthenticated = this.authService.isAuthenticated;
 
   readonly options = [
-    { label: '1', route: '/obiective' },
+    { label: 'Lucrare noua', route: '/obiective' },
     { label: '2', route: '/optiune-2' },
     { label: '3', route: '/optiune-3' },
     { label: '4', route: '/optiune-4' },

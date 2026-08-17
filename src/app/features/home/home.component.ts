@@ -3,17 +3,7 @@ import { Component } from '@angular/core';
 @Component({
   selector: 'app-home',
   standalone: true,
-  template: `
-    <div class="home">
-      <p>Alege una dintre opțiunile 1-4 din meniu.</p>
-    </div>
-  `,
-  styles: [
-    `
-      .home {
-        color: var(--color-text-muted);
-      }
-    `,
-  ],
+  templateUrl: './home.component.html',
+  styleUrl: './home.component.scss',
 })
 export class HomeComponent {}

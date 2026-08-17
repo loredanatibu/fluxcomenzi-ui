@@ -41,6 +41,11 @@
   justify-content: flex-end;
 }
 
+.shell__footer-error {
+  font-size: 0.9rem;
+  color: var(--color-danger);
+}
+
 .shell__user {
   display: flex;
   align-items: center;

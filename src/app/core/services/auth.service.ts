@@ -11,9 +11,11 @@ const EMAIL_KEY = 'fluxcomenzi_email';
 export class AuthService {
   private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
   private readonly emailSignal = signal<string | null>(localStorage.getItem(EMAIL_KEY));
+  private readonly loginErrorSignal = signal<string | null>(null);
 
   readonly isAuthenticated = computed(() => this.tokenSignal() !== null);
   readonly currentEmail = computed(() => this.emailSignal());
+  readonly loginError = this.loginErrorSignal.asReadonly();
 
   constructor(
     private readonly http: HttpClient,
@@ -28,6 +30,7 @@ export class AuthService {
         localStorage.setItem(EMAIL_KEY, email);
         this.tokenSignal.set(response.token);
         this.emailSignal.set(email);
+        this.loginErrorSignal.set(null);
       }),
     );
   }
@@ -37,6 +40,10 @@ export class AuthService {
     localStorage.removeItem(EMAIL_KEY);
     this.tokenSignal.set(null);
     this.emailSignal.set(null);
+  }
+
+  reportLoginError(message: string | null): void {
+    this.loginErrorSignal.set(message);
   }
 
   getToken(): string | null {

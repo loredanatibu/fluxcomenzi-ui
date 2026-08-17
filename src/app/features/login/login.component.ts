@@ -14,7 +14,7 @@ export class LoginComponent {
   private readonly fb = inject(FormBuilder);
   private readonly authService = inject(AuthService);
 
-  readonly errorMessage = signal<string | null>(null);
+  readonly errorMessage = this.authService.loginError;
   readonly isSubmitting = signal(false);
 
   readonly form = this.fb.group({
@@ -29,14 +29,14 @@ export class LoginComponent {
     }
 
     const { email, password } = this.form.getRawValue();
-    this.errorMessage.set(null);
+    this.authService.reportLoginError(null);
     this.isSubmitting.set(true);
 
     this.authService.login(email!, password!).subscribe({
       next: () => this.isSubmitting.set(false),
       error: () => {
         this.isSubmitting.set(false);
-        this.errorMessage.set('User sau parolă incorecte.');
+        this.authService.reportLoginError('User sau parolă incorecte.');
       },
     });
   }
