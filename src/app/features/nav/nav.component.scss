@@ -1,6 +1,6 @@
 .nav {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 0.75rem;
 }
 
@@ -8,8 +8,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 3rem;
-  height: 3rem;
+  width: 2.75rem;
+  height: 2.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
@@ -30,4 +30,14 @@
   background: var(--color-primary);
   border-color: var(--color-primary);
   color: var(--color-primary-contrast);
+}
+
+.nav__item--disabled {
+  pointer-events: none;
+  opacity: 0.4;
+  cursor: not-allowed;
+
+  &:hover {
+    border-color: var(--color-border);
+  }
 }

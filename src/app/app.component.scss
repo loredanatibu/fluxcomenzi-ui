@@ -1,5 +1,6 @@
 .shell {
   display: flex;
+  flex-direction: column;
   gap: 1.5rem;
   max-width: 1000px;
   margin: 2rem auto;
@@ -9,21 +10,13 @@
   border-radius: calc(var(--radius) * 1.5);
 }
 
-.shell__sidebar {
-  flex: 0 0 auto;
-}
-
-.shell__main {
-  flex: 1 1 auto;
+.shell__topbar {
   display: flex;
-  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
   gap: 1.5rem;
-  min-width: 0;
-}
-
-.shell__header {
-  display: flex;
-  justify-content: flex-end;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
 .shell__user {

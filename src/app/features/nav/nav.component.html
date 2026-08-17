@@ -2,7 +2,10 @@
   <a
     *ngFor="let option of options"
     class="nav__item"
-    [routerLink]="option.route"
+    [class.nav__item--disabled]="!isAuthenticated()"
+    [routerLink]="isAuthenticated() ? option.route : null"
+    [attr.aria-disabled]="!isAuthenticated()"
+    [tabindex]="isAuthenticated() ? 0 : -1"
     routerLinkActive="nav__item--active"
     >{{ option.label }}</a
   >

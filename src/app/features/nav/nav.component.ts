@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { NgFor } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { AuthService } from '../../core/services/auth.service';
 
 @Component({
   selector: 'app-nav',
@@ -10,6 +11,10 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
   styleUrl: './nav.component.scss',
 })
 export class NavComponent {
+  private readonly authService = inject(AuthService);
+
+  readonly isAuthenticated = this.authService.isAuthenticated;
+
   readonly options = [
     { label: '1', route: '/obiective' },
     { label: '2', route: '/optiune-2' },
