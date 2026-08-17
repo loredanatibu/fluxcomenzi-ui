@@ -1,0 +1,8 @@
+services:
+  fluxcomenzi-ui:
+    build: .
+    ports:
+      - '${UI_PORT:-4200}:80'
+    environment:
+      API_URL: ${API_URL:-http://localhost:8080/api}
+    restart: unless-stopped

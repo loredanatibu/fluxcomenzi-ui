@@ -1,0 +1,9 @@
+<nav class="nav">
+  <a
+    *ngFor="let option of options"
+    class="nav__item"
+    [routerLink]="option.route"
+    routerLinkActive="nav__item--active"
+    >{{ option.label }}</a
+  >
+</nav>

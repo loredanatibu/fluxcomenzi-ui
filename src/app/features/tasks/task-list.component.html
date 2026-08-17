@@ -1,0 +1,26 @@
+<div class="task-list">
+  <ng-container *ngIf="!authService.isAuthenticated()">
+    <p class="task-list__hint">Autentifică-te pentru a vedea task-urile.</p>
+  </ng-container>
+
+  <ng-container *ngIf="authService.isAuthenticated()">
+    <p *ngIf="isLoading()" class="task-list__hint">Se încarcă...</p>
+    <p *ngIf="errorMessage()" class="task-list__error">{{ errorMessage() }}</p>
+
+    <table *ngIf="!isLoading() && !errorMessage()" class="task-list__table">
+      <thead>
+        <tr>
+          <th *ngFor="let column of columns">{{ column.header }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let task of tasks()">
+          <td *ngFor="let column of columns">{{ column.value(task) }}</td>
+        </tr>
+        <tr *ngIf="tasks().length === 0">
+          <td [attr.colspan]="columns.length" class="task-list__hint">Niciun task găsit.</td>
+        </tr>
+      </tbody>
+    </table>
+  </ng-container>
+</div>

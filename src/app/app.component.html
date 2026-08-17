@@ -1,0 +1,20 @@
+<div class="shell">
+  <aside class="shell__sidebar">
+    <app-nav></app-nav>
+  </aside>
+
+  <div class="shell__main">
+    <header class="shell__header">
+      <app-login *ngIf="!authService.isAuthenticated()"></app-login>
+
+      <div *ngIf="authService.isAuthenticated()" class="shell__user">
+        <span>{{ authService.currentEmail() }}</span>
+        <button type="button" (click)="authService.logout()">Logout</button>
+      </div>
+    </header>
+
+    <main class="shell__content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>
