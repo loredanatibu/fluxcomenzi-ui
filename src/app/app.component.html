@@ -11,14 +11,10 @@
     <router-outlet></router-outlet>
   </main>
 
-  <footer *ngIf="authService.isAuthenticated() || authService.loginError()" class="shell__footer">
-    <div *ngIf="authService.isAuthenticated()" class="shell__user">
+  <footer *ngIf="authService.isAuthenticated()" class="shell__footer">
+    <div class="shell__user">
       <span>{{ authService.currentEmail() }}</span>
       <button type="button" (click)="authService.logout()">Logout</button>
     </div>
-
-    <span *ngIf="!authService.isAuthenticated() && authService.loginError()" class="shell__footer-error">
-      {{ authService.loginError() }}
-    </span>
   </footer>
 </div>

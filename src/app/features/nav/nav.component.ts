@@ -17,8 +17,7 @@ export class NavComponent {
 
   readonly options = [
     { label: 'Lucrare noua', route: '/obiective' },
-    { label: '2', route: '/optiune-2' },
-    { label: '3', route: '/optiune-3' },
-    { label: '4', route: '/optiune-4' },
+    { label: 'Comenzi', route: '/optiune-2' },
+    { label: 'Rapoarte', route: '/optiune-3' },
   ];
 }
