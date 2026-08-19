@@ -38,9 +38,9 @@
   }
 
   &--active {
-    background: #17b2c0;
+    background: #2e6f9e;
     color: var(--color-primary-contrast);
-    border-color: #17b2c0;
+    border-color: #29869f;
   }
 }
 
@@ -98,7 +98,7 @@
   padding: 0.55rem 1.2rem;
   border: none;
   border-radius: var(--radius);
-  background: var(--color-primary);
+  background: #29869f;
   color: var(--color-primary-contrast);
   font-weight: 600;
   cursor: pointer;
