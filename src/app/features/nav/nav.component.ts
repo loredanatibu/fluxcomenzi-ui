@@ -16,8 +16,8 @@ export class NavComponent {
   readonly isAuthenticated = this.authService.isAuthenticated;
 
   readonly options = [
-    { label: 'Lucrare noua', route: '/obiective' },
-    { label: 'Comenzi', route: '/optiune-2' },
-    { label: 'Rapoarte', route: '/optiune-3' },
+    { label: 'Obiectiv nou', route: '/obiectiv-nou' },
+    { label: 'Comenzi', route: '/comenzi' },
+    { label: 'Rapoarte', route: '/rapoarte' },
   ];
 }

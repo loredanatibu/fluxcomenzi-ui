@@ -1,0 +1,38 @@
+<div class="task-form">
+  <ng-container *ngIf="!authService.isAuthenticated()">
+    <p class="task-form__hint">Autentifică-te pentru a crea o lucrare nouă.</p>
+  </ng-container>
+
+  <form
+    *ngIf="authService.isAuthenticated()"
+    class="task-form__form"
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+  >
+    <label class="task-form__field">
+      <span>Obiectiv</span>
+      <select formControlName="idObiectiv">
+        <option [ngValue]="null" disabled>
+          {{ isLoadingObjectives() ? 'Se încarcă...' : 'Alege un obiectiv' }}
+        </option>
+        <option *ngFor="let objective of objectives()" [ngValue]="objective.id">
+          {{ objective.nume }}
+        </option>
+      </select>
+    </label>
+
+    <label class="task-form__field">
+      <span>Nume</span>
+      <input type="text" formControlName="nume" autocomplete="off" />
+    </label>
+
+    <div class="task-form__actions">
+      <button class="task-form__submit" type="submit" [disabled]="isSubmitting()">
+        {{ isSubmitting() ? 'Se salvează...' : 'Salvează' }}
+      </button>
+
+      <p *ngIf="errorMessage()" class="task-form__error">{{ errorMessage() }}</p>
+      <p *ngIf="successMessage()" class="task-form__success">{{ successMessage() }}</p>
+    </div>
+  </form>
+</div>

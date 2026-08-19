@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { RuntimeConfigService } from './runtime-config.service';
 import { LoginRequest, TokenResponse } from '../models/auth.model';
@@ -20,6 +21,7 @@ export class AuthService {
   constructor(
     private readonly http: HttpClient,
     private readonly config: RuntimeConfigService,
+    private readonly router: Router,
   ) {}
 
   login(email: string, password: string): Observable<TokenResponse> {
@@ -40,6 +42,7 @@ export class AuthService {
     localStorage.removeItem(EMAIL_KEY);
     this.tokenSignal.set(null);
     this.emailSignal.set(null);
+    this.router.navigate(['/']);
   }
 
   reportLoginError(message: string | null): void {

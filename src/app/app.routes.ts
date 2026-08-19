@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
-import { TaskListComponent } from './features/tasks/task-list.component';
+import { TaskFormComponent } from './features/tasks/task-form.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 import { authGuard } from './core/guards/auth.guard';
 
@@ -9,23 +9,20 @@ import { authGuard } from './core/guards/auth.guard';
 // Options 1-4 require authentication; authGuard redirects to '' otherwise.
 export const routes: Routes = [
   { path: '', component: HomeComponent },
-  { path: 'obiective', component: TaskListComponent, canActivate: [authGuard] }, // option 1
+  { 
+    path: 'obiectiv-nou', 
+    component: TaskFormComponent, 
+    canActivate: [authGuard] }, // option 1
   {
-    path: 'optiune-2',
+    path: 'comenzi',
     component: PlaceholderComponent,
     data: { optionNumber: 2 },
     canActivate: [authGuard],
   },
   {
-    path: 'optiune-3',
+    path: 'rapoarte',
     component: PlaceholderComponent,
     data: { optionNumber: 3 },
-    canActivate: [authGuard],
-  },
-  {
-    path: 'optiune-4',
-    component: PlaceholderComponent,
-    data: { optionNumber: 4 },
     canActivate: [authGuard],
   },
   { path: '**', redirectTo: '' },
