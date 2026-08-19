@@ -105,12 +105,16 @@ export class ObiectivComponent {
     this.selectedObiectivId.set(id);
 
     const obiectiv = id ? this.obiective().find((o) => o.id === id) : undefined;
-    this.form.patchValue({
-      nume: obiectiv?.nume ?? '',
-      alias: obiectiv?.alias ?? '',
-      termenExecutie: toDateInputValue(obiectiv?.termenExecutie),
-      dataIncepere: toDateInputValue(obiectiv?.dataIncepere),
-    });
+    this.dateRangeError.set(null);
+    this.form.patchValue(
+      {
+        nume: obiectiv?.nume ?? '',
+        alias: obiectiv?.alias ?? '',
+        termenExecutie: toDateInputValue(obiectiv?.termenExecutie),
+        dataIncepere: toDateInputValue(obiectiv?.dataIncepere),
+      },
+      { emitEvent: false },
+    );
   }
 
   submit(): void {
