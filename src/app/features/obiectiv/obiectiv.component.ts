@@ -1,8 +1,11 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { merge } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
+import { DateRangeService } from '../../core/services/date-range.service';
 import { Obiectiv } from '../../core/models/obiectiv.model';
 
 type ObiectivMode = 'create' | 'update' | 'delete';
@@ -21,6 +24,7 @@ export class ObiectivComponent {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
+  readonly dateRangeError = signal<string | null>(null);
 
   readonly obiective = signal<Obiectiv[]>([]);
   readonly isLoadingObiective = signal(false);
@@ -38,7 +42,30 @@ export class ObiectivComponent {
     dataIncepere: [''],
   });
 
-  constructor(readonly authService: AuthService, private readonly objectiveService: ObjectiveService) {}
+  constructor(
+    readonly authService: AuthService,
+    private readonly objectiveService: ObjectiveService,
+    private readonly dateRangeService: DateRangeService,
+  ) {
+    merge(this.form.get('dataIncepere')!.valueChanges, this.form.get('termenExecutie')!.valueChanges)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => this.validateDateRange());
+  }
+
+  private validateDateRange(): void {
+    const { dataIncepere, termenExecutie } = this.form.getRawValue();
+    const result = this.dateRangeService.validate(
+      dataIncepere,
+      termenExecutie,
+      'Data de începere trebuie să fie mai mică decât data de execuție.',
+    );
+
+    this.dateRangeError.set(result.message);
+
+    if (!result.valid) {
+      this.form.patchValue({ dataIncepere: '', termenExecutie: '' }, { emitEvent: false });
+    }
+  }
 
   selectMode(mode: ObiectivMode): void {
     if (this.mode() === mode) return;
@@ -46,6 +73,7 @@ export class ObiectivComponent {
     this.mode.set(mode);
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.dateRangeError.set(null);
     this.selectedObiectivId.set(null);
     this.form.reset();
 

@@ -87,6 +87,12 @@
   }
 }
 
+.obiectiv__field-error {
+  margin: -0.75rem 0 0;
+  color: var(--color-danger);
+  font-size: 0.8rem;
+}
+
 .obiectiv__actions {
   display: flex;
   align-items: center;

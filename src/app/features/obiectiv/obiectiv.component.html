@@ -60,6 +60,8 @@
         <input type="date" formControlName="dataIncepere" />
       </label>
 
+      <p *ngIf="dateRangeError()" class="obiectiv__field-error">{{ dateRangeError() }}</p>
+
       <div class="obiectiv__actions">
         <button
           class="obiectiv__submit"
