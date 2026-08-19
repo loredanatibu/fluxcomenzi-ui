@@ -38,7 +38,7 @@
   }
 
   &--active {
-    background: #2e6f9e;
+    background: rgb(46, 111, 158);
     color: var(--color-primary-contrast);
     border-color: #29869f;
   }
@@ -104,7 +104,7 @@
   padding: 0.55rem 1.2rem;
   border: none;
   border-radius: var(--radius);
-  background: #29869f;
+  background:  #3db03f;
   color: var(--color-primary-contrast);
   font-weight: 600;
   cursor: pointer;
