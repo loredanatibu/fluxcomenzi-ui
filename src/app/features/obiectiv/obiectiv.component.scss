@@ -24,12 +24,12 @@
 
 .obiectiv__menu-item {
   text-align: left;
-  padding: 0.65rem 1rem;
+  padding: 0.45rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
   color: var(--color-text);
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   font-weight: 600;
   cursor: pointer;
 
@@ -38,9 +38,9 @@
   }
 
   &--active {
-    background: var(--color-primary);
+    background: #17b2c0;
     color: var(--color-primary-contrast);
-    border-color: var(--color-primary);
+    border-color: #17b2c0;
   }
 }
 
