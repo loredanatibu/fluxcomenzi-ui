@@ -20,4 +20,15 @@ export class LucrareService {
   create(lucrare: { idObiectiv: number; nume: string }): Observable<Lucrare> {
     return this.http.post<Lucrare>(`${this.config.apiUrl}/lucrari`, lucrare);
   }
+
+  // PUT /api/lucrari/{id} -- updates an existing lucrare (nume is sent
+  // unchanged; only idObiectiv is editable in the UI).
+  update(id: number, lucrare: { idObiectiv: number; nume: string }): Observable<Lucrare> {
+    return this.http.put<Lucrare>(`${this.config.apiUrl}/lucrari/${id}`, lucrare);
+  }
+
+  // DELETE /api/lucrari/{id} -- removes a lucrare.
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.config.apiUrl}/lucrari/${id}`);
+  }
 }

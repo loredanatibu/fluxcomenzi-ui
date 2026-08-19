@@ -1,0 +1,131 @@
+.lucrare {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.lucrare__hint {
+  color: var(--color-text-muted);
+}
+
+.lucrare__layout {
+  display: flex;
+  gap: 1.5rem;
+  height: 100%;
+}
+
+.lucrare__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.lucrare__menu-item {
+  text-align: left;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.05);
+  }
+
+  &--active {
+    background: #2e6f9e;
+    color: var(--color-primary-contrast);
+    border-color: #29869f;
+  }
+}
+
+.lucrare__form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.lucrare__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 420px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+
+  select,
+  input {
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-size: 0.95rem;
+    color: var(--color-text);
+    background: var(--color-bg);
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      background: var(--color-bg-muted, var(--color-surface));
+    }
+  }
+}
+
+.lucrare__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.lucrare__submit {
+  align-self: flex-start;
+  padding: 0.55rem 1.2rem;
+  border: none;
+  border-radius: var(--radius);
+  background: #29869f;
+  color: var(--color-primary-contrast);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+}
+
+.lucrare__submit--danger {
+  background: var(--color-danger);
+  color: #fff;
+}
+
+.lucrare__error {
+  margin: 0;
+  color: var(--color-danger);
+  font-size: 0.85rem;
+}
+
+.lucrare__success {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 0.85rem;
+}

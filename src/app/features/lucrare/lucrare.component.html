@@ -1,0 +1,73 @@
+<div class="lucrare">
+  <ng-container *ngIf="!authService.isAuthenticated()">
+    <p class="lucrare__hint">Autentifică-te pentru a gestiona lucrările.</p>
+  </ng-container>
+
+  <div *ngIf="authService.isAuthenticated()" class="lucrare__layout">
+    <nav class="lucrare__menu">
+      <button
+        type="button"
+        class="lucrare__menu-item"
+        [class.lucrare__menu-item--active]="mode() === 'create'"
+        (click)="selectMode('create')"
+      >
+        Creează Lucrare
+      </button>
+      <button
+        type="button"
+        class="lucrare__menu-item"
+        [class.lucrare__menu-item--active]="mode() === 'update'"
+        (click)="selectMode('update')"
+      >
+        Modifică Lucrare
+      </button>
+      <button
+        type="button"
+        class="lucrare__menu-item"
+        [class.lucrare__menu-item--active]="mode() === 'delete'"
+        (click)="selectMode('delete')"
+      >
+        Șterge Lucrare
+      </button>
+    </nav>
+
+    <form class="lucrare__form" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="lucrare__field">
+        <span>Nume</span>
+        <input *ngIf="mode() === 'create'" type="text" formControlName="nume" autocomplete="off" />
+        <select
+          *ngIf="mode() !== 'create'"
+          [disabled]="isLoadingLucrari()"
+          (change)="onLucrareSelected($event)"
+        >
+          <option value="">{{ isLoadingLucrari() ? 'Se încarcă...' : 'Selectează lucrarea' }}</option>
+          <option *ngFor="let l of lucrari()" [value]="l.id">{{ l.nume }}</option>
+        </select>
+      </label>
+
+      <label class="lucrare__field">
+        <span>Obiectiv</span>
+        <select formControlName="idObiectiv">
+          <option [ngValue]="null" disabled>
+            {{ isLoadingObiective() ? 'Se încarcă...' : 'Alege un obiectiv' }}
+          </option>
+          <option *ngFor="let o of obiective()" [ngValue]="o.id">{{ o.nume }}</option>
+        </select>
+      </label>
+
+      <div class="lucrare__actions">
+        <button
+          class="lucrare__submit"
+          [class.lucrare__submit--danger]="mode() === 'delete'"
+          type="submit"
+          [disabled]="isSubmitting() || (mode() !== 'create' && !selectedLucrareId())"
+        >
+          {{ submitLabel() }}
+        </button>
+
+        <p *ngIf="errorMessage()" class="lucrare__error">{{ errorMessage() }}</p>
+        <p *ngIf="successMessage()" class="lucrare__success">{{ successMessage() }}</p>
+      </div>
+    </form>
+  </div>
+</div>

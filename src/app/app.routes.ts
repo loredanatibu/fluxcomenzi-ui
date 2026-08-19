@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
 import { ObiectivComponent } from './features/obiectiv/obiectiv.component';
+import { LucrareComponent } from './features/lucrare/lucrare.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 import { authGuard } from './core/guards/auth.guard';
 
@@ -9,10 +10,15 @@ import { authGuard } from './core/guards/auth.guard';
 // Options 1-4 require authentication; authGuard redirects to '' otherwise.
 export const routes: Routes = [
   { path: '', component: HomeComponent },
-  { 
+  {
     path: 'obiective',
     component: ObiectivComponent,
     canActivate: [authGuard] },
+  {
+    path: 'lucrari',
+    component: LucrareComponent,
+    canActivate: [authGuard],
+  },
   {
     path: 'comenzi',
     component: PlaceholderComponent,
