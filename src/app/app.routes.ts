@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
-import { TaskFormComponent } from './features/tasks/task-form.component';
+import { ObiectivComponent } from './features/obiectiv/obiectiv.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 import { authGuard } from './core/guards/auth.guard';
 
@@ -10,9 +10,9 @@ import { authGuard } from './core/guards/auth.guard';
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { 
-    path: 'obiectiv-nou', 
-    component: TaskFormComponent, 
-    canActivate: [authGuard] }, // option 1
+    path: 'obiectiv-nou',
+    component: ObiectivComponent,
+    canActivate: [authGuard] },
   {
     path: 'comenzi',
     component: PlaceholderComponent,

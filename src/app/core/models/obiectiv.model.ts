@@ -1,7 +1,9 @@
 // Mirrors com.mep.fluxcomenzi.model.Obiectiv (+ inherited VersionedEntity
-// columns) as returned by GET /api/obiective, used to populate the
-// "Obiectiv" combobox on the new-task form.
+// columns) as returned by / posted to /api/obiective.
 export interface Obiectiv {
   id: number;
   nume: string;
+  alias?: string | null;
+  termenExecutie?: string | null;
+  dataIncepere?: string | null;
 }

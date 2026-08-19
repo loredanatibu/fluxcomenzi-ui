@@ -13,10 +13,12 @@ export class AuthService {
   private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
   private readonly emailSignal = signal<string | null>(localStorage.getItem(EMAIL_KEY));
   private readonly loginErrorSignal = signal<string | null>(null);
+  private readonly sessionExpiredSignal = signal(false);
 
   readonly isAuthenticated = computed(() => this.tokenSignal() !== null);
   readonly currentEmail = computed(() => this.emailSignal());
   readonly loginError = this.loginErrorSignal.asReadonly();
+  readonly sessionExpired = this.sessionExpiredSignal.asReadonly();
 
   constructor(
     private readonly http: HttpClient,
@@ -51,5 +53,51 @@ export class AuthService {
 
   getToken(): string | null {
     return this.tokenSignal();
+  }
+
+  // Reads the JWT's exp claim without validating the signature (the backend
+  // is the source of truth; this is just a client-side hint to avoid
+  // sending requests that are certain to be rejected).
+  isTokenExpired(token: string): boolean {
+    const payload = decodeJwtPayload(token);
+    return payload?.exp === undefined || Date.now() >= payload.exp * 1000;
+  }
+
+  // Called by the auth interceptor when a request is (or would be) rejected
+  // for an expired/invalid token. Keeps the user "logged in" on screen,
+  // showing the session-expired dialog, until they explicitly close it.
+  notifySessionExpired(): void {
+    if (this.tokenSignal() === null) {
+      return;
+    }
+    this.sessionExpiredSignal.set(true);
+  }
+
+  // Called on every user interaction (see AppComponent), not just when a
+  // backend call happens -- so an expired session is caught immediately,
+  // even if the user's next action wouldn't itself have hit the API.
+  checkTokenExpiry(): void {
+    const token = this.tokenSignal();
+    if (token && this.isTokenExpired(token)) {
+      this.notifySessionExpired();
+    }
+  }
+
+  acknowledgeSessionExpired(): void {
+    this.sessionExpiredSignal.set(false);
+    this.logout();
+  }
+}
+
+function decodeJwtPayload(token: string): { exp?: number } | null {
+  const [, payload] = token.split('.');
+  if (!payload) {
+    return null;
+  }
+  try {
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    return JSON.parse(atob(base64));
+  } catch {
+    return null;
   }
 }

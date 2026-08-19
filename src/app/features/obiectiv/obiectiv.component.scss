@@ -1,14 +1,14 @@
-.task-form {
+.obiectiv {
   display: flex;
   flex-direction: column;
   height: 100%;
 }
 
-.task-form__hint {
+.obiectiv__hint {
   color: var(--color-text-muted);
 }
 
-.task-form__form {
+.obiectiv__form {
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
@@ -20,7 +20,7 @@
   border-radius: var(--radius);
 }
 
-.task-form__field {
+.obiectiv__field {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
@@ -44,13 +44,13 @@
   }
 }
 
-.task-form__actions {
+.obiectiv__actions {
   display: flex;
   align-items: center;
   gap: 1rem;
 }
 
-.task-form__submit {
+.obiectiv__submit {
   align-self: flex-start;
   padding: 0.55rem 1.2rem;
   border: none;
@@ -70,13 +70,13 @@
   }
 }
 
-.task-form__error {
+.obiectiv__error {
   margin: 0;
   color: var(--color-danger);
   font-size: 0.85rem;
 }
 
-.task-form__success {
+.obiectiv__success {
   margin: 0;
   color: var(--color-primary);
   font-size: 0.85rem;

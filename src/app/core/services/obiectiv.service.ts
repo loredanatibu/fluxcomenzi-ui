@@ -15,4 +15,14 @@ export class ObjectiveService {
   getAll(): Observable<Obiectiv[]> {
     return this.http.get<Obiectiv[]>(`${this.config.apiUrl}/obiective`);
   }
+
+  // POST /api/obiective -- creates a new objective.
+  create(obiectiv: {
+    nume: string;
+    alias?: string | null;
+    termenExecutie?: string | null;
+    dataIncepere?: string | null;
+  }): Observable<Obiectiv> {
+    return this.http.post<Obiectiv>(`${this.config.apiUrl}/obiective`, obiectiv);
+  }
 }
