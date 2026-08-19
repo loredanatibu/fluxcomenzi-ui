@@ -25,4 +25,23 @@ export class ObjectiveService {
   }): Observable<Obiectiv> {
     return this.http.post<Obiectiv>(`${this.config.apiUrl}/obiective`, obiectiv);
   }
+
+  // PUT /api/obiective/{id} -- updates an existing objective (nume/alias are
+  // sent unchanged; only termenExecutie/dataIncepere are editable in the UI).
+  update(
+    id: number,
+    obiectiv: {
+      nume: string;
+      alias?: string | null;
+      termenExecutie?: string | null;
+      dataIncepere?: string | null;
+    },
+  ): Observable<Obiectiv> {
+    return this.http.put<Obiectiv>(`${this.config.apiUrl}/obiective/${id}`, obiectiv);
+  }
+
+  // DELETE /api/obiective/{id} -- removes an objective.
+  delete(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.config.apiUrl}/obiective/${id}`);
+  }
 }
