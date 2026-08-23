@@ -1,0 +1,167 @@
+<div class="comanda">
+  <ng-container *ngIf="!authService.isAuthenticated()">
+    <p class="comanda__hint">Autentifică-te pentru a gestiona comenzile.</p>
+  </ng-container>
+
+  <div *ngIf="authService.isAuthenticated()" class="comanda__layout">
+    <nav class="comanda__menu">
+      <button
+        type="button"
+        class="comanda__menu-item"
+        [class.comanda__menu-item--active]="mode() === 'create'"
+        (click)="selectMode('create')"
+      >
+        Creează Comandă
+      </button>
+      <button
+        type="button"
+        class="comanda__menu-item"
+        [class.comanda__menu-item--active]="mode() === 'update'"
+        (click)="selectMode('update')"
+      >
+        Modifică Comandă
+      </button>
+      <button
+        type="button"
+        class="comanda__menu-item"
+        [class.comanda__menu-item--active]="mode() === 'delete'"
+        (click)="selectMode('delete')"
+      >
+        Șterge Comandă
+      </button>
+    </nav>
+
+    <form class="comanda__form" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="comanda__field" *ngIf="mode() !== 'update'">
+        <span>Nume material</span>
+        <input
+          *ngIf="mode() === 'create'"
+          type="text"
+          formControlName="numeMaterial"
+          autocomplete="off"
+          maxlength="200"
+        />
+        <select
+          *ngIf="mode() === 'delete'"
+          [disabled]="isLoadingComenzi()"
+          (change)="onComandaSelected($event)"
+        >
+          <option value="">{{ isLoadingComenzi() ? 'Se încarcă...' : 'Selectează comanda' }}</option>
+          <option *ngFor="let c of comenzi()" [value]="c.id">{{ c.numeMaterial }}</option>
+        </select>
+      </label>
+
+      <label class="comanda__field">
+        <span>Lucrare</span>
+        <select formControlName="idLucrare">
+          <option [ngValue]="null" disabled>
+            {{ isLoadingLucrari() ? 'Se încarcă...' : 'Alege o lucrare' }}
+          </option>
+          <option *ngFor="let l of lucrari()" [ngValue]="l.id">{{ l.nume }}</option>
+        </select>
+      </label>
+
+      <ng-container *ngIf="mode() !== 'update'">
+        <div class="comanda__row">
+          <label class="comanda__field comanda__field--sm">
+            <span>Cantitate</span>
+            <input type="number" formControlName="cantitate" step="0.001" min="0" />
+          </label>
+
+          <label class="comanda__field comanda__field--sm">
+            <span>Unitate măsură</span>
+            <input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" />
+          </label>
+        </div>
+
+        <div class="comanda__row">
+          <label class="comanda__field comanda__field--sm">
+            <span>Nume furnizor</span>
+            <input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" />
+          </label>
+
+          <label class="comanda__field comanda__field--sm">
+            <span>Email furnizor</span>
+            <input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" />
+          </label>
+        </div>
+
+        <div class="comanda__row comanda__row--align-end">
+          <label class="comanda__field comanda__field--sm">
+            <span>Termen livrare</span>
+            <input type="datetime-local" formControlName="termenLivrare" />
+          </label>
+
+          <div class="comanda__field comanda__field--sm">
+            <span>Comandă</span>
+            <div class="comanda__checkbox-group">
+              <label class="comanda__checkbox">
+                <input type="checkbox" formControlName="comandaTrimisa" />
+                <span>Trimis</span>
+              </label>
+
+              <label class="comanda__checkbox">
+                <input type="checkbox" formControlName="comandaReceptionata" />
+                <span>Recepționat</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <label class="comanda__field">
+          <span>Observații</span>
+          <textarea formControlName="observatii" rows="3" maxlength="200"></textarea>
+        </label>
+      </ng-container>
+
+      <div class="comanda__actions">
+        <button
+          *ngIf="mode() !== 'update'"
+          class="comanda__submit"
+          [class.comanda__submit--danger]="mode() === 'delete'"
+          type="submit"
+          [disabled]="isSubmitting() || (mode() !== 'create' && !selectedComandaId())"
+        >
+          {{ submitLabel() }}
+        </button>
+
+        <p *ngIf="errorMessage()" class="comanda__error">{{ errorMessage() }}</p>
+        <p *ngIf="successMessage()" class="comanda__success">{{ successMessage() }}</p>
+      </div>
+
+      <div class="comanda__grid" *ngIf="mode() === 'update'">
+        <p *ngIf="!selectedLucrareId()" class="comanda__hint">Alege o lucrare pentru a vedea comenzile aferente.</p>
+
+        <ng-container *ngIf="selectedLucrareId()">
+          <p *ngIf="isLoadingComenzi()" class="comanda__hint">Se încarcă...</p>
+          <p *ngIf="!isLoadingComenzi() && filteredComenzi().length === 0" class="comanda__hint">
+            Nu există comenzi pentru lucrarea selectată.
+          </p>
+
+          <table *ngIf="!isLoadingComenzi() && filteredComenzi().length > 0" class="comanda__table">
+            <thead>
+              <tr>
+                <th>Material</th>
+                <th>Cantitate</th>
+                <th>U.M.</th>
+                <th>Furnizor</th>
+                <th>Email furnizor</th>
+                <th>Termen livrare</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let c of filteredComenzi()">
+                <td>{{ c.numeMaterial }}</td>
+                <td>{{ c.cantitate }}</td>
+                <td>{{ c.unitateMasura }}</td>
+                <td>{{ c.numeFurnizor }}</td>
+                <td>{{ c.emailFurnizor }}</td>
+                <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </ng-container>
+      </div>
+    </form>
+  </div>
+</div>

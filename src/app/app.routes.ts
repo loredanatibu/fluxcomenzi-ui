@@ -2,6 +2,7 @@ import { Routes } from '@angular/router';
 import { HomeComponent } from './features/home/home.component';
 import { ObiectivComponent } from './features/obiectiv/obiectiv.component';
 import { LucrareComponent } from './features/lucrare/lucrare.component';
+import { ComandaComponent } from './features/comanda/comanda.component';
 import { PlaceholderComponent } from './features/placeholder/placeholder.component';
 import { authGuard } from './core/guards/auth.guard';
 
@@ -21,8 +22,7 @@ export const routes: Routes = [
   },
   {
     path: 'comenzi',
-    component: PlaceholderComponent,
-    data: { optionNumber: 2 },
+    component: ComandaComponent,
     canActivate: [authGuard],
   },
   {

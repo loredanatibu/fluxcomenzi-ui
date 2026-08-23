@@ -63,9 +63,11 @@ export class AuthService {
     return payload?.exp === undefined || Date.now() >= payload.exp * 1000;
   }
 
-  // Called by the auth interceptor when a request is (or would be) rejected
-  // for an expired/invalid token. Keeps the user "logged in" on screen,
-  // showing the session-expired dialog, until they explicitly close it.
+  // Called by the auth interceptor when a request is rejected with 401 (or
+  // would be, per the client-side expiry check below). A 401 here isn't
+  // necessarily an actually-expired session -- it can just as easily be a
+  // backend bug -- so this shows a generic error dialog rather than forcing
+  // a re-login. The user stays "logged in" on screen until they close it.
   notifySessionExpired(): void {
     if (this.tokenSignal() === null) {
       return;
@@ -83,9 +85,10 @@ export class AuthService {
     }
   }
 
+  // Just dismisses the dialog -- doesn't log the user out, since a 401 here
+  // isn't reliably a real session expiry (see notifySessionExpired).
   acknowledgeSessionExpired(): void {
     this.sessionExpiredSignal.set(false);
-    this.logout();
   }
 }
 
