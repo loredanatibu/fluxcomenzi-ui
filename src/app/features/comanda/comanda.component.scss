@@ -97,11 +97,6 @@
       cursor: not-allowed;
       background: var(--color-bg-muted, var(--color-surface));
     }
-
-    &.ng-invalid.ng-touched {
-      background: rgba(214, 69, 69, 0.12);
-      border-color: var(--color-danger);
-    }
   }
 
   select,

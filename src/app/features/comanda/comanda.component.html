@@ -33,7 +33,7 @@
 
     <form class="comanda__form" [formGroup]="form" (ngSubmit)="submit()">
       <label class="comanda__field" *ngIf="mode() !== 'update'">
-        <span>Nume material</span>
+        <span>Nume material<span class="required-marker">*</span></span>
         <input
           *ngIf="mode() === 'create'"
           type="text"
@@ -41,54 +41,53 @@
           autocomplete="off"
           maxlength="200"
         />
-        <select
+        <app-combo-select
           *ngIf="mode() === 'delete'"
-          [disabled]="isLoadingComenzi()"
-          (change)="onComandaSelected($event)"
-        >
-          <option value="">{{ isLoadingComenzi() ? 'Se încarcă...' : 'Selectează comanda' }}</option>
-          <option *ngFor="let c of comenzi()" [value]="c.id">{{ c.numeMaterial }}</option>
-        </select>
+          [options]="comandaOptions()"
+          [loading]="isLoadingComenzi()"
+          placeholder="Selectează comanda"
+          (valueChange)="onComandaSelected($event)"
+        ></app-combo-select>
       </label>
 
       <label class="comanda__field">
-        <span>Lucrare</span>
-        <select formControlName="idLucrare">
-          <option [ngValue]="null" disabled>
-            {{ isLoadingLucrari() ? 'Se încarcă...' : 'Alege o lucrare' }}
-          </option>
-          <option *ngFor="let l of lucrari()" [ngValue]="l.id">{{ l.nume }}</option>
-        </select>
+        <span>Lucrare<span class="required-marker">*</span></span>
+        <app-combo-select
+          formControlName="idLucrare"
+          [options]="lucrareOptions()"
+          [loading]="isLoadingLucrari()"
+          placeholder="Alege o lucrare"
+        ></app-combo-select>
       </label>
 
       <ng-container *ngIf="mode() !== 'update'">
         <div class="comanda__row">
           <label class="comanda__field comanda__field--sm">
-            <span>Cantitate</span>
+            <span>Cantitate<span class="required-marker">*</span></span>
             <input type="number" formControlName="cantitate" step="0.001" min="0" />
           </label>
 
           <label class="comanda__field comanda__field--sm">
-            <span>Unitate măsură</span>
+            <span>Unitate măsură<span class="required-marker">*</span></span>
             <input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" />
           </label>
         </div>
 
         <div class="comanda__row">
           <label class="comanda__field comanda__field--sm">
-            <span>Nume furnizor</span>
+            <span>Nume furnizor<span class="required-marker">*</span></span>
             <input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" />
           </label>
 
           <label class="comanda__field comanda__field--sm">
-            <span>Email furnizor</span>
+            <span>Email furnizor<span class="required-marker">*</span></span>
             <input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" />
           </label>
         </div>
 
         <div class="comanda__row comanda__row--align-end">
           <label class="comanda__field comanda__field--date">
-            <span>Termen livrare</span>
+            <span>Termen livrare<span class="required-marker">*</span></span>
             <app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input>
           </label>
 

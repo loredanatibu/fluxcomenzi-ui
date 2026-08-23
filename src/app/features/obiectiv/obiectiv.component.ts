@@ -8,13 +8,22 @@ import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { DateRangeService } from '../../core/services/date-range.service';
 import { Obiectiv } from '../../core/models/obiectiv.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
+import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
+import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
 type ObiectivMode = 'create' | 'update' | 'delete';
+
+const REQUIRED_FIELD_LABELS: Record<string, string> = {
+  nume: 'Nume',
+  alias: 'Alias',
+  termenExecutie: 'Termen execuție',
+  dataIncepere: 'Data începere',
+};
 
 @Component({
   selector: 'app-obiective',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DateInputComponent],
+  imports: [CommonModule, ReactiveFormsModule, DateInputComponent, ComboSelectComponent],
   templateUrl: './obiectiv.component.html',
   styleUrl: './obiectiv.component.scss',
 })
@@ -36,11 +45,15 @@ export class ObiectivComponent {
     return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
   });
 
+  readonly obiectivOptions = computed<ComboOption[]>(() =>
+    this.obiective().map((o) => ({ value: o.id, label: o.nume })),
+  );
+
   readonly form = this.fb.group({
     nume: ['', Validators.required],
-    alias: [''],
-    termenExecutie: [''],
-    dataIncepere: [''],
+    alias: ['', Validators.required],
+    termenExecutie: ['', Validators.required],
+    dataIncepere: ['', Validators.required],
   });
 
   constructor(
@@ -101,8 +114,8 @@ export class ObiectivComponent {
     this.loadObiective();
   }
 
-  onObiectivSelected(event: Event): void {
-    const id = Number((event.target as HTMLSelectElement).value) || null;
+  onObiectivSelected(rawId: number | string | null): void {
+    const id = rawId == null ? null : Number(rawId);
     this.selectedObiectivId.set(id);
 
     const obiectiv = id ? this.obiective().find((o) => o.id === id) : undefined;
@@ -132,7 +145,7 @@ export class ObiectivComponent {
     }
 
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      this.errorMessage.set(getRequiredFieldsMessage(this.form, REQUIRED_FIELD_LABELS));
       return;
     }
 

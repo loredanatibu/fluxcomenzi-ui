@@ -29,3 +29,18 @@ body {
 button {
   font-family: inherit;
 }
+
+// Applies wherever a form label marks a field as mandatory (see required-fields.util.ts).
+.required-marker {
+  color: var(--color-danger);
+  margin-left: 0.15rem;
+}
+
+// Native form controls across every feature form get the same "missing/invalid" highlight;
+// app-date-input and app-combo-select style their own equivalent internally.
+input.ng-invalid.ng-touched,
+textarea.ng-invalid.ng-touched,
+select.ng-invalid.ng-touched {
+  background: rgba(214, 69, 69, 0.12);
+  border-color: var(--color-danger);
+}

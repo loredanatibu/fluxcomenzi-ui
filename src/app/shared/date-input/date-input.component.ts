@@ -80,12 +80,18 @@ export class DateInputComponent implements ControlValueAccessor {
     }
   }
 
-  onNativePicked(rawValue: string): void {
+  onNativePicked(nativeInput: HTMLInputElement): void {
+    const rawValue = nativeInput.value;
     this.digits = isoToDigits(rawValue, this.type);
     this.displayValue = formatDigits(this.digits, this.type);
     this.nativeValue = rawValue;
     this.onChange(rawValue);
     this.onTouchedFn();
+
+    // Some browsers leave the native calendar popup open after a value is committed via
+    // showPicker(). Blurring in the same tick as 'change' can race the browser's own close
+    // routine, so defer it a tick to force the popup shut as a fallback once that's settled.
+    setTimeout(() => nativeInput.blur());
   }
 }
 

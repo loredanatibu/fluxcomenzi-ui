@@ -7,13 +7,25 @@ import { LucrareService } from '../../core/services/lucrare.service';
 import { Comanda } from '../../core/models/comanda.model';
 import { Lucrare } from '../../core/models/lucrare.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
+import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
+import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
 type ComandaMode = 'create' | 'update' | 'delete';
+
+const REQUIRED_FIELD_LABELS: Record<string, string> = {
+  numeMaterial: 'Nume material',
+  idLucrare: 'Lucrare',
+  cantitate: 'Cantitate',
+  unitateMasura: 'Unitate măsură',
+  numeFurnizor: 'Nume furnizor',
+  emailFurnizor: 'Email furnizor',
+  termenLivrare: 'Termen livrare',
+};
 
 @Component({
   selector: 'app-comenzi',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, DateInputComponent],
+  imports: [CommonModule, ReactiveFormsModule, DateInputComponent, ComboSelectComponent],
   templateUrl: './comanda.component.html',
   styleUrl: './comanda.component.scss',
 })
@@ -44,6 +56,13 @@ export class ComandaComponent {
     if (this.isSubmitting()) return 'Se salvează...';
     return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
   });
+
+  readonly comandaOptions = computed<ComboOption[]>(() =>
+    this.comenzi().map((c) => ({ value: c.id, label: c.numeMaterial })),
+  );
+  readonly lucrareOptions = computed<ComboOption[]>(() =>
+    this.lucrari().map((l) => ({ value: l.id, label: l.nume })),
+  );
 
   readonly form = this.fb.group({
     numeMaterial: ['', Validators.required],
@@ -126,8 +145,8 @@ export class ComandaComponent {
     this.loadComenzi();
   }
 
-  onComandaSelected(event: Event): void {
-    const id = Number((event.target as HTMLSelectElement).value) || null;
+  onComandaSelected(rawId: number | string | null): void {
+    const id = rawId == null ? null : Number(rawId);
     this.selectedComandaId.set(id);
 
     const comanda = id ? this.comenzi().find((c) => c.id === id) : undefined;
@@ -162,8 +181,7 @@ export class ComandaComponent {
     }
 
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.errorMessage.set('Completează toate câmpurile obligatorii.');
+      this.errorMessage.set(getRequiredFieldsMessage(this.form, REQUIRED_FIELD_LABELS));
       return;
     }
 

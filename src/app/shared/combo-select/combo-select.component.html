@@ -1,0 +1,33 @@
+<div class="combo-select">
+  <input
+    #textInput
+    type="text"
+    class="combo-select__input"
+    [class.combo-select__input--invalid]="isInvalid"
+    [placeholder]="loading ? loadingText : placeholder"
+    [value]="query()"
+    [disabled]="disabled || loading"
+    autocomplete="off"
+    role="combobox"
+    aria-autocomplete="list"
+    [attr.aria-expanded]="isOpen()"
+    (input)="onInput(textInput.value)"
+    (focus)="onFocus()"
+    (blur)="onBlur()"
+    (keydown)="onKeydown($event)"
+  />
+
+  <ul class="combo-select__list" *ngIf="isOpen() && !loading">
+    <li *ngIf="filteredOptions().length === 0" class="combo-select__empty">{{ emptyText }}</li>
+    <li
+      *ngFor="let opt of filteredOptions(); let i = index"
+      class="combo-select__option"
+      [class.combo-select__option--active]="i === activeIndex()"
+      [class.combo-select__option--selected]="opt.value === selected()"
+      (mousedown)="$event.preventDefault()"
+      (click)="selectOption(opt)"
+    >
+      {{ opt.label }}
+    </li>
+  </ul>
+</div>

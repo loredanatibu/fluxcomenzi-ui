@@ -33,30 +33,29 @@
 
     <form class="obiectiv__form" [formGroup]="form" (ngSubmit)="submit()">
       <label class="obiectiv__field">
-        <span>Nume</span>
+        <span>Nume<span class="required-marker">*</span></span>
         <input *ngIf="mode() === 'create'" type="text" formControlName="nume" autocomplete="off" />
-        <select
+        <app-combo-select
           *ngIf="mode() !== 'create'"
-          [disabled]="isLoadingObiective()"
-          (change)="onObiectivSelected($event)"
-        >
-          <option value="">{{ isLoadingObiective() ? 'Se încarcă...' : 'Selectează obiectivul' }}</option>
-          <option *ngFor="let o of obiective()" [value]="o.id">{{ o.nume }}</option>
-        </select>
+          [options]="obiectivOptions()"
+          [loading]="isLoadingObiective()"
+          placeholder="Selectează obiectivul"
+          (valueChange)="onObiectivSelected($event)"
+        ></app-combo-select>
       </label>
 
       <label class="obiectiv__field">
-        <span>Alias</span>
+        <span>Alias<span class="required-marker">*</span></span>
         <input type="text" formControlName="alias" autocomplete="off" />
       </label>
 
       <label class="obiectiv__field">
-        <span>Termen execuție</span>
+        <span>Termen execuție<span class="required-marker">*</span></span>
         <app-date-input type="date" formControlName="termenExecutie"></app-date-input>
       </label>
 
       <label class="obiectiv__field">
-        <span>Data începere</span>
+        <span>Data începere<span class="required-marker">*</span></span>
         <app-date-input type="date" formControlName="dataIncepere"></app-date-input>
       </label>
 
@@ -67,7 +66,11 @@
           class="obiectiv__submit"
           [class.obiectiv__submit--danger]="mode() === 'delete'"
           type="submit"
-          [disabled]="isSubmitting() || (mode() !== 'create' && !selectedObiectivId())"
+          [disabled]="
+            isSubmitting() ||
+            (mode() === 'create' && form.invalid) ||
+            (mode() !== 'create' && !selectedObiectivId())
+          "
         >
           {{ submitLabel() }}
         </button>

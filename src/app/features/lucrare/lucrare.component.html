@@ -33,26 +33,25 @@
 
     <form class="lucrare__form" [formGroup]="form" (ngSubmit)="submit()">
       <label class="lucrare__field">
-        <span>Nume</span>
+        <span>Nume<span class="required-marker">*</span></span>
         <input *ngIf="mode() === 'create'" type="text" formControlName="nume" autocomplete="off" />
-        <select
+        <app-combo-select
           *ngIf="mode() !== 'create'"
-          [disabled]="isLoadingLucrari()"
-          (change)="onLucrareSelected($event)"
-        >
-          <option value="">{{ isLoadingLucrari() ? 'Se încarcă...' : 'Selectează lucrarea' }}</option>
-          <option *ngFor="let l of lucrari()" [value]="l.id">{{ l.nume }}</option>
-        </select>
+          [options]="lucrareOptions()"
+          [loading]="isLoadingLucrari()"
+          placeholder="Selectează lucrarea"
+          (valueChange)="onLucrareSelected($event)"
+        ></app-combo-select>
       </label>
 
       <label class="lucrare__field">
-        <span>Obiectiv</span>
-        <select formControlName="idObiectiv">
-          <option [ngValue]="null" disabled>
-            {{ isLoadingObiective() ? 'Se încarcă...' : 'Alege un obiectiv' }}
-          </option>
-          <option *ngFor="let o of obiective()" [ngValue]="o.id">{{ o.nume }}</option>
-        </select>
+        <span>Obiectiv<span class="required-marker">*</span></span>
+        <app-combo-select
+          formControlName="idObiectiv"
+          [options]="obiectivOptions()"
+          [loading]="isLoadingObiective()"
+          placeholder="Alege un obiectiv"
+        ></app-combo-select>
       </label>
 
       <div class="lucrare__actions">

@@ -4,6 +4,7 @@
 }
 
 .date-input {
+  position: relative;
   display: flex;
   align-items: stretch;
   gap: 0.4rem;
@@ -63,13 +64,16 @@
   }
 }
 
+// Kept at the same size/position as the visible controls (rather than clipped to 1px) so the
+// browser anchors its native calendar popup over the field the user actually clicked, instead
+// of at the top of the nearest positioned ancestor.
 .date-input__native {
   position: absolute;
-  width: 1px;
-  height: 1px;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   padding: 0;
-  margin: -1px;
-  overflow: hidden;
+  margin: 0;
   border: 0;
   opacity: 0;
   pointer-events: none;

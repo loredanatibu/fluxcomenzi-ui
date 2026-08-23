@@ -6,13 +6,20 @@ import { LucrareService } from '../../core/services/lucrare.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { Lucrare } from '../../core/models/lucrare.model';
 import { Obiectiv } from '../../core/models/obiectiv.model';
+import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
+import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
 type LucrareMode = 'create' | 'update' | 'delete';
+
+const REQUIRED_FIELD_LABELS: Record<string, string> = {
+  nume: 'Nume',
+  idObiectiv: 'Obiectiv',
+};
 
 @Component({
   selector: 'app-lucrari',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ComboSelectComponent],
   templateUrl: './lucrare.component.html',
   styleUrl: './lucrare.component.scss',
 })
@@ -35,6 +42,13 @@ export class LucrareComponent {
     if (this.isSubmitting()) return 'Se salvează...';
     return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
   });
+
+  readonly lucrareOptions = computed<ComboOption[]>(() =>
+    this.lucrari().map((l) => ({ value: l.id, label: l.nume })),
+  );
+  readonly obiectivOptions = computed<ComboOption[]>(() =>
+    this.obiective().map((o) => ({ value: o.id, label: o.nume })),
+  );
 
   readonly form = this.fb.group({
     nume: ['', Validators.required],
@@ -78,8 +92,8 @@ export class LucrareComponent {
     this.loadLucrari();
   }
 
-  onLucrareSelected(event: Event): void {
-    const id = Number((event.target as HTMLSelectElement).value) || null;
+  onLucrareSelected(rawId: number | string | null): void {
+    const id = rawId == null ? null : Number(rawId);
     this.selectedLucrareId.set(id);
 
     const lucrare = id ? this.lucrari().find((l) => l.id === id) : undefined;
@@ -106,7 +120,7 @@ export class LucrareComponent {
     }
 
     if (this.form.invalid) {
-      this.form.markAllAsTouched();
+      this.errorMessage.set(getRequiredFieldsMessage(this.form, REQUIRED_FIELD_LABELS));
       return;
     }
 
