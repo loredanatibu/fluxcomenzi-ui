@@ -6,13 +6,14 @@ import { ComandaService } from '../../core/services/comanda.service';
 import { LucrareService } from '../../core/services/lucrare.service';
 import { Comanda } from '../../core/models/comanda.model';
 import { Lucrare } from '../../core/models/lucrare.model';
+import { DateInputComponent } from '../../shared/date-input/date-input.component';
 
 type ComandaMode = 'create' | 'update' | 'delete';
 
 @Component({
   selector: 'app-comenzi',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DateInputComponent],
   templateUrl: './comanda.component.html',
   styleUrl: './comanda.component.scss',
 })

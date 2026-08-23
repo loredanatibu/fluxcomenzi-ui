@@ -7,13 +7,14 @@ import { AuthService } from '../../core/services/auth.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { DateRangeService } from '../../core/services/date-range.service';
 import { Obiectiv } from '../../core/models/obiectiv.model';
+import { DateInputComponent } from '../../shared/date-input/date-input.component';
 
 type ObiectivMode = 'create' | 'update' | 'delete';
 
 @Component({
   selector: 'app-obiective',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, DateInputComponent],
   templateUrl: './obiectiv.component.html',
   styleUrl: './obiectiv.component.scss',
 })

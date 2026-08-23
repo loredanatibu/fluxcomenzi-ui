@@ -1,0 +1,38 @@
+<div class="date-input">
+  <input
+    #textInput
+    type="text"
+    class="date-input__text"
+    [class.date-input__text--invalid]="isInvalid"
+    [placeholder]="placeholder"
+    [value]="displayValue"
+    [disabled]="disabled"
+    inputmode="numeric"
+    autocomplete="off"
+    (input)="onTextInput(textInput.value)"
+    (blur)="onBlur()"
+  />
+
+  <button
+    type="button"
+    class="date-input__picker-btn"
+    [disabled]="disabled"
+    (click)="openPicker(nativeInput)"
+    aria-label="Deschide calendarul"
+  >
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <path d="M3 10h18M8 3v4M16 3v4" />
+    </svg>
+  </button>
+
+  <input
+    #nativeInput
+    [type]="type"
+    class="date-input__native"
+    [value]="nativeValue"
+    [disabled]="disabled"
+    tabindex="-1"
+    (change)="onNativePicked(nativeInput.value)"
+  />
+</div>
