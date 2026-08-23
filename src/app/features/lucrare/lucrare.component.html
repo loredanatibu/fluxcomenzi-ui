@@ -33,6 +33,16 @@
 
     <form class="lucrare__form" [formGroup]="form" (ngSubmit)="submit()">
       <label class="lucrare__field">
+        <span>Obiectiv<span class="required-marker">*</span></span>
+        <app-combo-select
+          formControlName="idObiectiv"
+          [options]="obiectivOptions()"
+          [loading]="isLoadingObiective()"
+          placeholder="Alege un obiectiv"
+        ></app-combo-select>
+      </label>
+
+      <label class="lucrare__field">
         <span>Nume<span class="required-marker">*</span></span>
         <input *ngIf="mode() === 'create'" type="text" formControlName="nume" autocomplete="off" />
         <app-combo-select
@@ -41,16 +51,6 @@
           [loading]="isLoadingLucrari()"
           placeholder="Selectează lucrarea"
           (valueChange)="onLucrareSelected($event)"
-        ></app-combo-select>
-      </label>
-
-      <label class="lucrare__field">
-        <span>Obiectiv<span class="required-marker">*</span></span>
-        <app-combo-select
-          formControlName="idObiectiv"
-          [options]="obiectivOptions()"
-          [loading]="isLoadingObiective()"
-          placeholder="Alege un obiectiv"
         ></app-combo-select>
       </label>
 
