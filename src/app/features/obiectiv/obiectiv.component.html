@@ -39,23 +39,24 @@
           *ngIf="mode() !== 'create'"
           [options]="obiectivOptions()"
           [loading]="isLoadingObiective()"
+          [value]="selectedObiectivId()"
           placeholder="Selectează obiectivul"
           (valueChange)="onObiectivSelected($event)"
         ></app-combo-select>
       </label>
 
       <label class="obiectiv__field">
-        <span>Alias<span class="required-marker">*</span></span>
+        <span>Alias<span *ngIf="mode() === 'create'" class="required-marker">*</span></span>
         <input type="text" formControlName="alias" autocomplete="off" />
       </label>
 
       <label class="obiectiv__field">
-        <span>Termen execuție<span class="required-marker">*</span></span>
+        <span>Termen execuție<span *ngIf="mode() === 'create'" class="required-marker">*</span></span>
         <app-date-input type="date" formControlName="termenExecutie"></app-date-input>
       </label>
 
       <label class="obiectiv__field">
-        <span>Data începere<span class="required-marker">*</span></span>
+        <span>Data începere<span *ngIf="mode() === 'create'" class="required-marker">*</span></span>
         <app-date-input type="date" formControlName="dataIncepere"></app-date-input>
       </label>
 

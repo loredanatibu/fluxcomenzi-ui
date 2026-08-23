@@ -39,6 +39,7 @@ export class ObiectivComponent {
   readonly obiective = signal<Obiectiv[]>([]);
   readonly isLoadingObiective = signal(false);
   readonly selectedObiectivId = signal<number | null>(null);
+  private obiectiveRequestId = 0;
 
   readonly submitLabel = computed(() => {
     if (this.isSubmitting()) return 'Se salvează...';
@@ -91,25 +92,43 @@ export class ObiectivComponent {
     this.selectedObiectivId.set(null);
     this.form.reset();
 
+    const nume = this.form.get('nume')!;
+    const alias = this.form.get('alias')!;
+    const termenExecutie = this.form.get('termenExecutie')!;
+    const dataIncepere = this.form.get('dataIncepere')!;
+
     if (mode === 'create') {
-      this.form.get('nume')?.enable();
-      this.form.get('alias')?.enable();
-      this.form.get('termenExecutie')?.enable();
-      this.form.get('dataIncepere')?.enable();
+      nume.enable();
+      alias.enable();
+      termenExecutie.enable();
+      dataIncepere.enable();
+      nume.setValidators(Validators.required);
+      alias.setValidators(Validators.required);
+      termenExecutie.setValidators(Validators.required);
+      dataIncepere.setValidators(Validators.required);
+      [nume, alias, termenExecutie, dataIncepere].forEach((c) => c.updateValueAndValidity({ emitEvent: false }));
       return;
     }
 
     // Nume/alias are only ever chosen/displayed, never typed, in update & delete mode.
-    this.form.get('nume')?.disable();
-    this.form.get('alias')?.disable();
+    nume.disable();
+    alias.disable();
+    nume.clearValidators();
+    alias.clearValidators();
 
     if (mode === 'delete') {
-      this.form.get('termenExecutie')?.disable();
-      this.form.get('dataIncepere')?.disable();
+      termenExecutie.disable();
+      dataIncepere.disable();
     } else {
-      this.form.get('termenExecutie')?.enable();
-      this.form.get('dataIncepere')?.enable();
+      termenExecutie.enable();
+      dataIncepere.enable();
     }
+
+    // "Nume" (the objective picked above) is the only required field in update/delete
+    // mode -- termen execuție and data începere stay optional even when editable.
+    termenExecutie.clearValidators();
+    dataIncepere.clearValidators();
+    [nume, alias, termenExecutie, dataIncepere].forEach((c) => c.updateValueAndValidity({ emitEvent: false }));
 
     this.loadObiective();
   }
@@ -184,13 +203,17 @@ export class ObiectivComponent {
   }
 
   private loadObiective(): void {
+    const requestId = ++this.obiectiveRequestId;
     this.isLoadingObiective.set(true);
     this.objectiveService.getAll().subscribe({
       next: (list) => {
+        if (requestId !== this.obiectiveRequestId) return;
         this.obiective.set(list);
         this.isLoadingObiective.set(false);
+        this.errorMessage.set(null);
       },
       error: () => {
+        if (requestId !== this.obiectiveRequestId) return;
         this.isLoadingObiective.set(false);
         this.errorMessage.set('Obiectivele nu au putut fi încărcate.');
       },
