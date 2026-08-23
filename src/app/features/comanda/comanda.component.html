@@ -138,28 +138,36 @@
             Nu există comenzi pentru lucrarea selectată.
           </p>
 
-          <table *ngIf="!isLoadingComenzi() && filteredComenzi().length > 0" class="comanda__table">
-            <thead>
-              <tr>
-                <th>Material</th>
-                <th>Cantitate</th>
-                <th>U.M.</th>
-                <th>Furnizor</th>
-                <th>Email furnizor</th>
-                <th>Termen livrare</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let c of filteredComenzi()">
-                <td>{{ c.numeMaterial }}</td>
-                <td>{{ c.cantitate }}</td>
-                <td>{{ c.unitateMasura }}</td>
-                <td>{{ c.numeFurnizor }}</td>
-                <td>{{ c.emailFurnizor }}</td>
-                <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <div *ngIf="!isLoadingComenzi() && filteredComenzi().length > 0" class="comanda__table-scroll">
+            <table class="comanda__table">
+              <thead>
+                <tr>
+                  <th>Material</th>
+                  <th>Cantitate</th>
+                  <th>U.M.</th>
+                  <th>Furnizor</th>
+                  <th>Email furnizor</th>
+                  <th>Termen livrare</th>
+                  <th>Trimisă</th>
+                  <th>Recepționată</th>
+                  <th>Observații</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let c of filteredComenzi()">
+                  <td>{{ c.numeMaterial }}</td>
+                  <td>{{ c.cantitate }}</td>
+                  <td>{{ c.unitateMasura }}</td>
+                  <td>{{ c.numeFurnizor }}</td>
+                  <td>{{ c.emailFurnizor }}</td>
+                  <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
+                  <td>{{ c.comandaTrimisa ? 'Da' : 'Nu' }}</td>
+                  <td>{{ c.comandaReceptionata ? 'Da' : 'Nu' }}</td>
+                  <td>{{ c.observatii }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </ng-container>
       </div>
     </form>

@@ -13,12 +13,10 @@ export class AuthService {
   private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
   private readonly emailSignal = signal<string | null>(localStorage.getItem(EMAIL_KEY));
   private readonly loginErrorSignal = signal<string | null>(null);
-  private readonly sessionExpiredSignal = signal(false);
 
   readonly isAuthenticated = computed(() => this.tokenSignal() !== null);
   readonly currentEmail = computed(() => this.emailSignal());
   readonly loginError = this.loginErrorSignal.asReadonly();
-  readonly sessionExpired = this.sessionExpiredSignal.asReadonly();
 
   constructor(
     private readonly http: HttpClient,
@@ -64,15 +62,18 @@ export class AuthService {
   }
 
   // Called by the auth interceptor when a request is rejected with 401 (or
-  // would be, per the client-side expiry check below). A 401 here isn't
-  // necessarily an actually-expired session -- it can just as easily be a
-  // backend bug -- so this shows a generic error dialog rather than forcing
-  // a re-login. The user stays "logged in" on screen until they close it.
+  // would be, per the client-side expiry check below). Clears the stored
+  // token and sends the user back to the login screen at '/'.
   notifySessionExpired(): void {
     if (this.tokenSignal() === null) {
       return;
     }
-    this.sessionExpiredSignal.set(true);
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(EMAIL_KEY);
+    this.tokenSignal.set(null);
+    this.emailSignal.set(null);
+    this.loginErrorSignal.set('Sesiunea a expirat. Te rugăm să te autentifici din nou.');
+    this.router.navigate(['/']);
   }
 
   // Called on every user interaction (see AppComponent), not just when a
@@ -83,12 +84,6 @@ export class AuthService {
     if (token && this.isTokenExpired(token)) {
       this.notifySessionExpired();
     }
-  }
-
-  // Just dismisses the dialog -- doesn't log the user out, since a 401 here
-  // isn't reliably a real session expiry (see notifySessionExpired).
-  acknowledgeSessionExpired(): void {
-    this.sessionExpiredSignal.set(false);
   }
 }
 

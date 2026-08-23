@@ -3,13 +3,12 @@ import { NgIf } from '@angular/common';
 import { Router, RouterOutlet } from '@angular/router';
 import { NavComponent } from './features/nav/nav.component';
 import { LoginComponent } from './features/login/login.component';
-import { SessionExpiredDialogComponent } from './features/session-expired/session-expired-dialog.component';
 import { AuthService } from './core/services/auth.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [NgIf, RouterOutlet, NavComponent, LoginComponent, SessionExpiredDialogComponent],
+  imports: [NgIf, RouterOutlet, NavComponent, LoginComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })
