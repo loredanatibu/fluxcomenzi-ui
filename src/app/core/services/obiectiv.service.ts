@@ -17,10 +17,10 @@ export class ObjectiveService {
     return this.http.get<Obiectiv[]>(`${this.config.apiUrl}/obiective`);
   }
 
-  // GET /api/obiective/cu-lucrari -- objectives paired with their lucrari; drives the
+  // GET /api/obiective/cobiective´-cu-lucrari -- objectives paired with their lucrari; drives the
   // cascading Obiectiv -> Lucrare selection when editing a lucrare.
   getAllCuLucrari(): Observable<ObiectivCuLucrari[]> {
-    return this.http.get<ObiectivCuLucrari[]>(`${this.config.apiUrl}/obiective/cu-lucrari`);
+    return this.http.get<ObiectivCuLucrari[]>(`${this.config.apiUrl}/obiective/obiectiv-cu-lucrari`);
   }
 
   // POST /api/obiective -- creates a new objective.

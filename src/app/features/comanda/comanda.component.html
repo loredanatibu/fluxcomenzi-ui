@@ -32,6 +32,26 @@
     </nav>
 
     <form class="comanda__form" [formGroup]="form" (ngSubmit)="submit()">
+      <label class="comanda__field" *ngIf="mode() === 'create'">
+        <span>Obiectiv<span class="required-marker">*</span></span>
+        <app-combo-select
+          [options]="obiectivOptions()"
+          [loading]="isLoadingObiective()"
+          placeholder="Alege un obiectiv"
+          (valueChange)="onObiectivSelectedForCreate($event)"
+        ></app-combo-select>
+      </label>
+
+      <label class="comanda__field">
+        <span>Lucrare<span class="required-marker">*</span></span>
+        <app-combo-select
+          formControlName="idLucrare"
+          [options]="lucrareOptions()"
+          [loading]="mode() === 'create' ? isLoadingObiective() : isLoadingLucrari()"
+          placeholder="Alege o lucrare"
+        ></app-combo-select>
+      </label>
+
       <label class="comanda__field" *ngIf="mode() !== 'update'">
         <span>Nume material<span class="required-marker">*</span></span>
         <input
@@ -47,16 +67,6 @@
           [loading]="isLoadingComenzi()"
           placeholder="Selectează comanda"
           (valueChange)="onComandaSelected($event)"
-        ></app-combo-select>
-      </label>
-
-      <label class="comanda__field">
-        <span>Lucrare<span class="required-marker">*</span></span>
-        <app-combo-select
-          formControlName="idLucrare"
-          [options]="lucrareOptions()"
-          [loading]="isLoadingLucrari()"
-          placeholder="Alege o lucrare"
         ></app-combo-select>
       </label>
 

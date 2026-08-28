@@ -1,14 +1,30 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { ComandaService } from '../../core/services/comanda.service';
 import { LucrareService } from '../../core/services/lucrare.service';
+import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { Comanda } from '../../core/models/comanda.model';
 import { Lucrare } from '../../core/models/lucrare.model';
+import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
+
+// Fields that stay disabled in "Creează Comandă" until a Lucrare is picked.
+const CREATE_STAGE_FIELDS = [
+  'numeMaterial',
+  'cantitate',
+  'unitateMasura',
+  'numeFurnizor',
+  'emailFurnizor',
+  'termenLivrare',
+  'comandaTrimisa',
+  'comandaReceptionata',
+  'observatii',
+] as const;
 
 type ComandaMode = 'create' | 'update' | 'delete';
 
@@ -52,6 +68,12 @@ export class ComandaComponent {
     return this.comenzi().filter((c) => c.idLucrare === idLucrare);
   });
 
+  // Create mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then
+  // scopes which lucrari are selectable, before anything else becomes editable.
+  readonly obiectiveCuLucrari = signal<ObiectivCuLucrari[]>([]);
+  readonly isLoadingObiective = signal(false);
+  readonly selectedIdObiectiv = signal<number | null>(null);
+
   readonly submitLabel = computed(() => {
     if (this.isSubmitting()) return 'Se salvează...';
     return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
@@ -60,9 +82,18 @@ export class ComandaComponent {
   readonly comandaOptions = computed<ComboOption[]>(() =>
     this.comenzi().map((c) => ({ value: c.id, label: c.numeMaterial })),
   );
-  readonly lucrareOptions = computed<ComboOption[]>(() =>
-    this.lucrari().map((l) => ({ value: l.id, label: l.nume })),
+  readonly obiectivOptions = computed<ComboOption[]>(() =>
+    this.obiectiveCuLucrari().map((o) => ({ value: o.obiectiv.idObiectiv, label: o.obiectiv.nume })),
   );
+  readonly lucrareOptions = computed<ComboOption[]>(() => {
+    if (this.mode() === 'create') {
+      const idObiectiv = this.selectedIdObiectiv();
+      if (idObiectiv == null) return [];
+      const entry = this.obiectiveCuLucrari().find((o) => o.obiectiv.idObiectiv === idObiectiv);
+      return (entry?.lucrari ?? []).map((l) => ({ value: l.idLucrare, label: l.nume }));
+    }
+    return this.lucrari().map((l) => ({ value: l.id, label: l.nume }));
+  });
 
   readonly form = this.fb.group({
     numeMaterial: ['', Validators.required],
@@ -81,14 +112,37 @@ export class ComandaComponent {
     readonly authService: AuthService,
     private readonly comandaService: ComandaService,
     private readonly lucrareService: LucrareService,
+    private readonly objectiveService: ObjectiveService,
   ) {
+    // Creează Comandă starts with nothing selected: Obiectiv must be chosen first,
+    // which unlocks Lucrare, which in turn unlocks everything else.
+    this.form.get('idLucrare')?.disable();
+    this.setCreateStageFieldsEnabled(false);
+
     if (this.authService.isAuthenticated()) {
       this.loadLucrari();
+      this.loadObiectiveCuLucrari();
     }
 
-    this.form.get('idLucrare')?.valueChanges.subscribe((value) => {
+    this.form.get('idLucrare')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
       this.selectedLucrareId.set(value);
+      if (this.mode() === 'create') {
+        this.setCreateStageFieldsEnabled(value != null);
+      }
     });
+  }
+
+  onObiectivSelectedForCreate(rawId: number | string | null): void {
+    const id = rawId == null ? null : Number(rawId);
+    this.selectedIdObiectiv.set(id);
+
+    const idLucrare = this.form.get('idLucrare')!;
+    idLucrare.reset(null);
+    if (id != null) {
+      idLucrare.enable();
+    } else {
+      idLucrare.disable();
+    }
   }
 
   selectMode(mode: ComandaMode): void {
@@ -99,19 +153,13 @@ export class ComandaComponent {
     this.successMessage.set(null);
     this.selectedComandaId.set(null);
     this.selectedLucrareId.set(null);
+    this.selectedIdObiectiv.set(null);
     this.form.reset();
 
     if (mode === 'create') {
-      this.form.get('numeMaterial')?.enable();
-      this.form.get('idLucrare')?.enable();
-      this.form.get('cantitate')?.enable();
-      this.form.get('unitateMasura')?.enable();
-      this.form.get('numeFurnizor')?.enable();
-      this.form.get('emailFurnizor')?.enable();
-      this.form.get('termenLivrare')?.enable();
-      this.form.get('comandaTrimisa')?.enable();
-      this.form.get('comandaReceptionata')?.enable();
-      this.form.get('observatii')?.enable();
+      this.form.get('idLucrare')?.disable();
+      this.setCreateStageFieldsEnabled(false);
+      this.loadObiectiveCuLucrari();
       return;
     }
 
@@ -249,6 +297,32 @@ export class ComandaComponent {
         this.errorMessage.set('Lucrările nu au putut fi încărcate.');
       },
     });
+  }
+
+  private loadObiectiveCuLucrari(): void {
+    this.isLoadingObiective.set(true);
+    this.objectiveService.getAllCuLucrari().subscribe({
+      next: (list) => {
+        this.obiectiveCuLucrari.set(list);
+        this.isLoadingObiective.set(false);
+        this.errorMessage.set(null);
+      },
+      error: () => {
+        this.isLoadingObiective.set(false);
+        this.errorMessage.set('Obiectivele nu au putut fi încărcate.');
+      },
+    });
+  }
+
+  private setCreateStageFieldsEnabled(enabled: boolean): void {
+    for (const name of CREATE_STAGE_FIELDS) {
+      const control = this.form.get(name);
+      if (enabled) {
+        control?.enable();
+      } else {
+        control?.disable();
+      }
+    }
   }
 
   private loadComenzi(): void {
