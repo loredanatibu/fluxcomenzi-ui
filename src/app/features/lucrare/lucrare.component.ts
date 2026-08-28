@@ -66,6 +66,9 @@ export class LucrareComponent {
     idObiectiv: [null as number | null, Validators.required],
   });
 
+  // Drives the Salvează button in create mode: disabled until Obiectiv + Nume are filled.
+  readonly formInvalid = signal(this.form.invalid);
+
   constructor(
     readonly authService: AuthService,
     private readonly lucrareService: LucrareService,
@@ -74,6 +77,10 @@ export class LucrareComponent {
     if (this.authService.isAuthenticated()) {
       this.loadObiective();
     }
+
+    this.form.statusChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.formInvalid.set(this.form.invalid);
+    });
 
     this.form.get('idObiectiv')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
       if (this.mode() === 'create') return;

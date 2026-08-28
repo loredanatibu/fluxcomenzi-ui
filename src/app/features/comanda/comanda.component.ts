@@ -108,6 +108,12 @@ export class ComandaComponent {
     observatii: [''],
   });
 
+  // Drives the Salvează button in create mode: disabled until all required fields are
+  // filled. Uses `.valid` rather than `.invalid` because the create-stage fields start
+  // disabled (locked behind Obiectiv/Lucrare) -- an all-disabled group's status is
+  // 'DISABLED', which is neither valid nor invalid, so `.invalid` alone would miss it.
+  readonly formValid = signal(this.form.valid);
+
   constructor(
     readonly authService: AuthService,
     private readonly comandaService: ComandaService,
@@ -123,6 +129,10 @@ export class ComandaComponent {
       this.loadLucrari();
       this.loadObiectiveCuLucrari();
     }
+
+    this.form.statusChanges.pipe(takeUntilDestroyed()).subscribe(() => {
+      this.formValid.set(this.form.valid);
+    });
 
     this.form.get('idLucrare')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
       this.selectedLucrareId.set(value);

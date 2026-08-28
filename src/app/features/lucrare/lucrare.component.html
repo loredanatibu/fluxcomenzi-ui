@@ -65,7 +65,7 @@
           class="lucrare__submit"
           [class.lucrare__submit--danger]="mode() === 'delete'"
           type="submit"
-          [disabled]="isSubmitting() || (mode() !== 'create' && !selectedLucrareId())"
+          [disabled]="isSubmitting() || (mode() === 'create' ? formInvalid() : !selectedLucrareId())"
         >
           {{ submitLabel() }}
         </button>

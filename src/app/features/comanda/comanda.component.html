@@ -129,7 +129,7 @@
           class="comanda__submit"
           [class.comanda__submit--danger]="mode() === 'delete'"
           type="submit"
-          [disabled]="isSubmitting() || (mode() !== 'create' && !selectedComandaId())"
+          [disabled]="isSubmitting() || (mode() === 'create' ? !formValid() : !selectedComandaId())"
         >
           {{ submitLabel() }}
         </button>
