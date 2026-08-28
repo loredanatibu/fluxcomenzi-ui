@@ -60,7 +60,7 @@ export class ComandaComponent {
   readonly isLoadingComenzi = signal(false);
   readonly selectedComandaId = signal<number | null>(null);
 
-  // Update mode (for now) only lists comenzi for the chosen lucrare; per-comanda editing comes later.
+  // Update mode lists comenzi for the chosen lucrare; per-comanda editing comes later.
   readonly selectedLucrareId = signal<number | null>(null);
   readonly filteredComenzi = computed(() => {
     const idLucrare = this.selectedLucrareId();
@@ -68,8 +68,9 @@ export class ComandaComponent {
     return this.comenzi().filter((c) => c.idLucrare === idLucrare);
   });
 
-  // Create mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then
-  // scopes which lucrari are selectable, before anything else becomes editable.
+  // Create & update: Obiectiv is picked first (from /obiective/cu-lucrari), which then
+  // scopes which lucrari are selectable (in create, before anything else becomes editable;
+  // in update, before the comenzi grid for the chosen lucrare is shown).
   readonly obiectiveCuLucrari = signal<ObiectivCuLucrari[]>([]);
   readonly isLoadingObiective = signal(false);
   readonly selectedIdObiectiv = signal<number | null>(null);
@@ -86,13 +87,13 @@ export class ComandaComponent {
     this.obiectiveCuLucrari().map((o) => ({ value: o.obiectiv.idObiectiv, label: o.obiectiv.nume })),
   );
   readonly lucrareOptions = computed<ComboOption[]>(() => {
-    if (this.mode() === 'create') {
-      const idObiectiv = this.selectedIdObiectiv();
-      if (idObiectiv == null) return [];
-      const entry = this.obiectiveCuLucrari().find((o) => o.obiectiv.idObiectiv === idObiectiv);
-      return (entry?.lucrari ?? []).map((l) => ({ value: l.idLucrare, label: l.nume }));
+    if (this.mode() === 'delete') {
+      return this.lucrari().map((l) => ({ value: l.id, label: l.nume }));
     }
-    return this.lucrari().map((l) => ({ value: l.id, label: l.nume }));
+    const idObiectiv = this.selectedIdObiectiv();
+    if (idObiectiv == null) return [];
+    const entry = this.obiectiveCuLucrari().find((o) => o.obiectiv.idObiectiv === idObiectiv);
+    return (entry?.lucrari ?? []).map((l) => ({ value: l.idLucrare, label: l.nume }));
   });
 
   readonly form = this.fb.group({
@@ -142,7 +143,7 @@ export class ComandaComponent {
     });
   }
 
-  onObiectivSelectedForCreate(rawId: number | string | null): void {
+  onObiectivSelected(rawId: number | string | null): void {
     const id = rawId == null ? null : Number(rawId);
     this.selectedIdObiectiv.set(id);
 
@@ -177,8 +178,9 @@ export class ComandaComponent {
     this.form.get('numeMaterial')?.disable();
 
     if (mode === 'update') {
-      // Only Lucrare stays editable; the datagrid below lists comenzi for the chosen lucrare.
-      this.form.get('idLucrare')?.enable();
+      // Obiectiv is picked first, which scopes Lucrare; picking Lucrare then drives
+      // the comenzi datagrid below.
+      this.form.get('idLucrare')?.disable();
       this.form.get('cantitate')?.disable();
       this.form.get('unitateMasura')?.disable();
       this.form.get('numeFurnizor')?.disable();
@@ -187,6 +189,7 @@ export class ComandaComponent {
       this.form.get('comandaTrimisa')?.disable();
       this.form.get('comandaReceptionata')?.disable();
       this.form.get('observatii')?.disable();
+      this.loadObiectiveCuLucrari();
     } else {
       // delete
       this.form.get('idLucrare')?.disable();

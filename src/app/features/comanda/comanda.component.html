@@ -32,13 +32,13 @@
     </nav>
 
     <form class="comanda__form" [formGroup]="form" (ngSubmit)="submit()">
-      <label class="comanda__field" *ngIf="mode() === 'create'">
+      <label class="comanda__field" *ngIf="mode() !== 'delete'">
         <span>Obiectiv<span class="required-marker">*</span></span>
         <app-combo-select
           [options]="obiectivOptions()"
           [loading]="isLoadingObiective()"
           placeholder="Alege un obiectiv"
-          (valueChange)="onObiectivSelectedForCreate($event)"
+          (valueChange)="onObiectivSelected($event)"
         ></app-combo-select>
       </label>
 
@@ -47,7 +47,7 @@
         <app-combo-select
           formControlName="idLucrare"
           [options]="lucrareOptions()"
-          [loading]="mode() === 'create' ? isLoadingObiective() : isLoadingLucrari()"
+          [loading]="mode() === 'delete' ? isLoadingLucrari() : isLoadingObiective()"
           placeholder="Alege o lucrare"
         ></app-combo-select>
       </label>
