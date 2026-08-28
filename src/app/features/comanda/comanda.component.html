@@ -39,6 +39,7 @@
             [options]="obiectivOptions()"
             [loading]="isLoadingObiective()"
             [selectOnly]="mode() === 'delete'"
+            [value]="selectedIdObiectiv()"
             placeholder="Alege un obiectiv"
             (valueChange)="onObiectivSelected($event)"
           ></app-combo-select>
@@ -192,7 +193,14 @@
                     <td class="comanda__table-checkbox">
                       <input type="checkbox" formControlName="comandaReceptionata" />
                     </td>
-                    <td><input type="text" formControlName="observatii" maxlength="200" /></td>
+                    <td>
+                      <textarea
+                        class="comanda__table-observatii"
+                        formControlName="observatii"
+                        maxlength="200"
+                        rows="1"
+                      ></textarea>
+                    </td>
                   </tr>
                 </tbody>
               </table>

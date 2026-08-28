@@ -268,6 +268,7 @@
   }
 
   input,
+  textarea,
   app-date-input .date-input__text,
   app-date-input .date-input__picker-btn {
     border: 1px solid transparent;
@@ -280,9 +281,20 @@
     padding: 0.3rem 0.35rem;
   }
 
+  .comanda__table-observatii {
+    width: 100%;
+    max-height: 4.5rem;
+    padding: 0.3rem 0.35rem;
+    font: inherit;
+    color: inherit;
+    resize: none;
+    overflow-y: auto;
+  }
+
   // Only the focused cell picks up a visible edit surface -- border + fill --
   // signalling exactly where the next keystroke lands.
   input:not([type='checkbox']):focus,
+  textarea:focus,
   app-date-input .date-input__text:focus {
     outline: none;
     border-color: var(--color-primary);
