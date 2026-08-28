@@ -32,27 +32,29 @@
     </nav>
 
     <form class="comanda__form" [formGroup]="form" (ngSubmit)="submit()">
-      <label class="comanda__field">
-        <span>Obiectiv<span class="required-marker">*</span></span>
-        <app-combo-select
-          [options]="obiectivOptions()"
-          [loading]="isLoadingObiective()"
-          [selectOnly]="mode() === 'delete'"
-          placeholder="Alege un obiectiv"
-          (valueChange)="onObiectivSelected($event)"
-        ></app-combo-select>
-      </label>
+      <div class="comanda__row">
+        <label class="comanda__field comanda__field--narrow">
+          <span>Obiectiv<span class="required-marker">*</span></span>
+          <app-combo-select
+            [options]="obiectivOptions()"
+            [loading]="isLoadingObiective()"
+            [selectOnly]="mode() === 'delete'"
+            placeholder="Alege un obiectiv"
+            (valueChange)="onObiectivSelected($event)"
+          ></app-combo-select>
+        </label>
 
-      <label class="comanda__field">
-        <span>Lucrare<span class="required-marker">*</span></span>
-        <app-combo-select
-          formControlName="idLucrare"
-          [options]="lucrareOptions()"
-          [loading]="isLoadingObiective()"
-          [selectOnly]="mode() === 'delete'"
-          placeholder="Alege o lucrare"
-        ></app-combo-select>
-      </label>
+        <label class="comanda__field comanda__field--narrow">
+          <span>Lucrare<span class="required-marker">*</span></span>
+          <app-combo-select
+            formControlName="idLucrare"
+            [options]="lucrareOptions()"
+            [loading]="isLoadingObiective()"
+            [selectOnly]="mode() === 'delete'"
+            placeholder="Alege o lucrare"
+          ></app-combo-select>
+        </label>
+      </div>
 
       <label class="comanda__field" *ngIf="mode() !== 'update'">
         <span>Nume material<span class="required-marker">*</span></span>
@@ -151,36 +153,51 @@
             Nu există comenzi pentru lucrarea selectată.
           </p>
 
-          <div *ngIf="!isLoadingComenzi() && filteredComenzi().length > 0" class="comanda__table-scroll">
-            <table class="comanda__table">
-              <thead>
-                <tr>
-                  <th>Material</th>
-                  <th>Cantitate</th>
-                  <th>U.M.</th>
-                  <th>Furnizor</th>
-                  <th>Email furnizor</th>
-                  <th>Termen livrare</th>
-                  <th>Trimisă</th>
-                  <th>Recepționată</th>
-                  <th>Observații</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let c of filteredComenzi()">
-                  <td>{{ c.numeMaterial }}</td>
-                  <td>{{ c.cantitate }}</td>
-                  <td>{{ c.unitateMasura }}</td>
-                  <td>{{ c.numeFurnizor }}</td>
-                  <td>{{ c.emailFurnizor }}</td>
-                  <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
-                  <td>{{ c.comandaTrimisa ? 'Da' : 'Nu' }}</td>
-                  <td>{{ c.comandaReceptionata ? 'Da' : 'Nu' }}</td>
-                  <td>{{ c.observatii }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <ng-container *ngIf="!isLoadingComenzi() && filteredComenzi().length > 0">
+            <div class="comanda__grid-toolbar">
+              <button
+                type="button"
+                class="comanda__submit"
+                [disabled]="!gridForm.dirty || isSubmitting()"
+                (click)="saveGridChanges()"
+              >
+                {{ isSubmitting() ? 'Se salvează...' : 'Salvează modificările' }}
+              </button>
+            </div>
+
+            <div class="comanda__table-scroll">
+              <table class="comanda__table">
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Cantitate</th>
+                    <th>U.M.</th>
+                    <th>Furnizor</th>
+                    <th>Email furnizor</th>
+                    <th>Termen livrare</th>
+                    <th>Trimisă</th>
+                    <th>Recepționată</th>
+                    <th>Observații</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let group of gridForm.controls" [formGroup]="group">
+                    <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
+                    <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
+                    <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
+                    <td><input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" /></td>
+                    <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
+                    <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
+                    <td class="comanda__table-checkbox"><input type="checkbox" formControlName="comandaTrimisa" /></td>
+                    <td class="comanda__table-checkbox">
+                      <input type="checkbox" formControlName="comandaReceptionata" />
+                    </td>
+                    <td><input type="text" formControlName="observatii" maxlength="200" /></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </ng-container>
         </ng-container>
       </div>
     </form>

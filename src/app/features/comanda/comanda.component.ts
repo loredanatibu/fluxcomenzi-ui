@@ -1,9 +1,10 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
-import { ComandaService } from '../../core/services/comanda.service';
+import { ComandaService, ComandaPayload } from '../../core/services/comanda.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { Comanda } from '../../core/models/comanda.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
@@ -55,13 +56,21 @@ export class ComandaComponent {
   readonly isLoadingComenzi = signal(false);
   readonly selectedComandaId = signal<number | null>(null);
 
-  // Update mode lists comenzi for the chosen lucrare; per-comanda editing comes later.
+  // Update mode lists comenzi for the chosen lucrare, editable directly in the grid.
   readonly selectedLucrareId = signal<number | null>(null);
   readonly filteredComenzi = computed(() => {
     const idLucrare = this.selectedLucrareId();
     if (idLucrare == null) return [];
     return this.comenzi().filter((c) => c.idLucrare === idLucrare);
   });
+
+  // One FormGroup per row in the comenzi grid, rebuilt whenever filteredComenzi changes.
+  // gridRows mirrors it 1:1 so save can recover each row's id/idLucrare (not editable
+  // fields, so not part of the group). The Salvează button's enabled state reads
+  // gridForm.dirty directly in the template -- Reactive Forms already tracks that
+  // per control from user input, no extra bookkeeping needed.
+  readonly gridForm = new FormArray<FormGroup>([]);
+  private gridRows: Comanda[] = [];
 
   // Create & update: Obiectiv is picked first (from /obiective/cu-lucrari), which then
   // scopes which lucrari are selectable (in create, before anything else becomes editable;
@@ -134,6 +143,70 @@ export class ComandaComponent {
       if (this.mode() === 'create') {
         this.setCreateStageFieldsEnabled(value != null);
       }
+    });
+
+    effect(() => this.buildGridForm(this.filteredComenzi()));
+  }
+
+  private buildGridForm(rows: Comanda[]): void {
+    this.gridRows = rows;
+    this.gridForm.clear();
+    for (const c of rows) {
+      this.gridForm.push(
+        this.fb.group({
+          numeMaterial: [c.numeMaterial],
+          cantitate: [c.cantitate],
+          unitateMasura: [c.unitateMasura],
+          numeFurnizor: [c.numeFurnizor],
+          emailFurnizor: [c.emailFurnizor],
+          termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
+          comandaTrimisa: [c.comandaTrimisa],
+          comandaReceptionata: [c.comandaReceptionata],
+          observatii: [c.observatii],
+        }),
+      );
+    }
+  }
+
+  saveGridChanges(): void {
+    if (!this.gridForm.dirty) return;
+
+    const updates = this.gridForm.controls
+      .map((group, i) => ({ group, row: this.gridRows[i] }))
+      .filter(({ group }) => group.dirty)
+      .map(({ group, row }) => {
+        const v = group.getRawValue();
+        const payload: ComandaPayload = {
+          idLucrare: row.idLucrare,
+          numeMaterial: v.numeMaterial,
+          cantitate: Number(v.cantitate),
+          unitateMasura: v.unitateMasura,
+          numeFurnizor: v.numeFurnizor,
+          emailFurnizor: v.emailFurnizor,
+          termenLivrare: v.termenLivrare,
+          comandaTrimisa: v.comandaTrimisa,
+          comandaReceptionata: v.comandaReceptionata,
+          observatii: v.observatii ?? '',
+        };
+        return this.comandaService.update(row.id, payload);
+      });
+
+    if (updates.length === 0) return;
+
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.isSubmitting.set(true);
+
+    forkJoin(updates).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.successMessage.set('Comenzile au fost actualizate.');
+        this.loadComenzi();
+      },
+      error: () => {
+        this.isSubmitting.set(false);
+        this.errorMessage.set('Comenzile nu au putut fi actualizate.');
+      },
     });
   }
 

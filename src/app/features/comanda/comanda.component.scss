@@ -114,6 +114,10 @@
   max-width: 180px;
 }
 
+.comanda__field--narrow {
+  max-width: 260px;
+}
+
 .comanda__field--date {
   max-width: 240px;
 }
@@ -176,6 +180,10 @@
   gap: 0.75rem;
 }
 
+.comanda__grid-toolbar {
+  padding: 0.4rem 0;
+}
+
 .comanda__table-scroll {
   overflow-x: auto;
   min-width: 0;
@@ -183,33 +191,107 @@
 
 .comanda__table {
   width: 100%;
-  min-width: 960px;
+  min-width: 720px;
   border-collapse: collapse;
   font-size: 0.85rem;
+  table-layout: fixed;
 
   th,
   td {
     text-align: left;
-    padding: 0.55rem 0.7rem;
+    padding: 0.4rem 0.3rem;
     border-bottom: 1px solid var(--color-border);
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   td:last-child {
     white-space: normal;
-    max-width: 240px;
   }
 
   th {
     color: var(--color-text-muted);
     font-weight: 600;
-    position: sticky;
-    top: 0;
     background: var(--color-surface);
   }
 
   td {
     color: var(--color-text);
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 12%;
+  }
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 8%;
+  }
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 6%;
+  }
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 10%;
+  }
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 13%;
+  }
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 13%;
+  }
+  th:nth-child(7),
+  td:nth-child(7) {
+    width: 7%;
+  }
+  th:nth-child(8),
+  td:nth-child(8) {
+    width: 9%;
+  }
+  th:nth-child(9),
+  td:nth-child(9) {
+    width: 22%;
+  }
+
+  // At rest, editable cells read as plain text: no borders, no fill, no column
+  // striping -- the grid looks like a table first, not a wall of input boxes.
+  tbody tr:hover td {
+    background: var(--color-bg);
+  }
+
+  .comanda__table-checkbox {
+    text-align: center;
+  }
+
+  input,
+  app-date-input .date-input__text,
+  app-date-input .date-input__picker-btn {
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: transparent;
+  }
+
+  input:not([type='checkbox']) {
+    width: 100%;
+    padding: 0.3rem 0.35rem;
+  }
+
+  // Only the focused cell picks up a visible edit surface -- border + fill --
+  // signalling exactly where the next keystroke lands.
+  input:not([type='checkbox']):focus,
+  app-date-input .date-input__text:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+  }
+
+  input[type='checkbox']:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
   }
 }
 
