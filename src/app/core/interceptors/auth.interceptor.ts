@@ -1,6 +1,6 @@
 import { HttpErrorResponse, HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
-import { catchError, throwError } from 'rxjs';
+import { throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
 // Attaches the bearer token to every request except the login call itself
@@ -24,18 +24,15 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
     return throwError(() => new HttpErrorResponse({ status: 401, statusText: 'Session expired' }));
   }
 
+  // A 401 coming back from the backend is left to the calling component's
+  // own error handling (it shows a message) rather than treated here as
+  // proof the session expired -- the client-side expiry check above is the
+  // only thing allowed to force a logout/redirect. A backend 401 can also
+  // mean a misconfigured/misspelled endpoint or a permissions issue on that
+  // one request, which isn't the same thing as an expired session.
   return next(
     req.clone({
       setHeaders: { Authorization: `Bearer ${token}` },
-    }),
-  ).pipe(
-    catchError((error: unknown) => {
-      // Covers the case where the token looked valid client-side but the
-      // backend rejected it anyway (revoked, clock skew, wrong secret, ...).
-      if (error instanceof HttpErrorResponse && error.status === 401) {
-        authService.notifySessionExpired();
-      }
-      return throwError(() => error);
     }),
   );
 };
