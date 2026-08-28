@@ -4,10 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../core/services/auth.service';
 import { ComandaService } from '../../core/services/comanda.service';
-import { LucrareService } from '../../core/services/lucrare.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { Comanda } from '../../core/models/comanda.model';
-import { Lucrare } from '../../core/models/lucrare.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
@@ -53,9 +51,6 @@ export class ComandaComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
 
-  readonly lucrari = signal<Lucrare[]>([]);
-  readonly isLoadingLucrari = signal(false);
-
   readonly comenzi = signal<Comanda[]>([]);
   readonly isLoadingComenzi = signal(false);
   readonly selectedComandaId = signal<number | null>(null);
@@ -80,16 +75,17 @@ export class ComandaComponent {
     return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
   });
 
-  readonly comandaOptions = computed<ComboOption[]>(() =>
-    this.comenzi().map((c) => ({ value: c.id, label: c.numeMaterial })),
-  );
+  readonly comandaOptions = computed<ComboOption[]>(() => {
+    const idLucrare = this.selectedLucrareId();
+    if (idLucrare == null) return [];
+    return this.comenzi()
+      .filter((c) => c.idLucrare === idLucrare)
+      .map((c) => ({ value: c.id, label: c.numeMaterial }));
+  });
   readonly obiectivOptions = computed<ComboOption[]>(() =>
     this.obiectiveCuLucrari().map((o) => ({ value: o.obiectiv.idObiectiv, label: o.obiectiv.nume })),
   );
   readonly lucrareOptions = computed<ComboOption[]>(() => {
-    if (this.mode() === 'delete') {
-      return this.lucrari().map((l) => ({ value: l.id, label: l.nume }));
-    }
     const idObiectiv = this.selectedIdObiectiv();
     if (idObiectiv == null) return [];
     const entry = this.obiectiveCuLucrari().find((o) => o.obiectiv.idObiectiv === idObiectiv);
@@ -118,7 +114,6 @@ export class ComandaComponent {
   constructor(
     readonly authService: AuthService,
     private readonly comandaService: ComandaService,
-    private readonly lucrareService: LucrareService,
     private readonly objectiveService: ObjectiveService,
   ) {
     // Creează Comandă starts with nothing selected: Obiectiv must be chosen first,
@@ -127,7 +122,6 @@ export class ComandaComponent {
     this.setCreateStageFieldsEnabled(false);
 
     if (this.authService.isAuthenticated()) {
-      this.loadLucrari();
       this.loadObiectiveCuLucrari();
     }
 
@@ -175,34 +169,20 @@ export class ComandaComponent {
     }
 
     // Nume material is only ever chosen/displayed, never typed, in update & delete mode.
+    // Obiectiv is picked first (select-only in delete), which scopes Lucrare (also
+    // select-only in delete); picking Lucrare then drives the comenzi below -- the
+    // read-only datagrid in update mode, the Nume material picker in delete mode.
     this.form.get('numeMaterial')?.disable();
-
-    if (mode === 'update') {
-      // Obiectiv is picked first, which scopes Lucrare; picking Lucrare then drives
-      // the comenzi datagrid below.
-      this.form.get('idLucrare')?.disable();
-      this.form.get('cantitate')?.disable();
-      this.form.get('unitateMasura')?.disable();
-      this.form.get('numeFurnizor')?.disable();
-      this.form.get('emailFurnizor')?.disable();
-      this.form.get('termenLivrare')?.disable();
-      this.form.get('comandaTrimisa')?.disable();
-      this.form.get('comandaReceptionata')?.disable();
-      this.form.get('observatii')?.disable();
-      this.loadObiectiveCuLucrari();
-    } else {
-      // delete
-      this.form.get('idLucrare')?.disable();
-      this.form.get('cantitate')?.disable();
-      this.form.get('unitateMasura')?.disable();
-      this.form.get('numeFurnizor')?.disable();
-      this.form.get('emailFurnizor')?.disable();
-      this.form.get('termenLivrare')?.disable();
-      this.form.get('comandaTrimisa')?.disable();
-      this.form.get('comandaReceptionata')?.disable();
-      this.form.get('observatii')?.disable();
-    }
-
+    this.form.get('idLucrare')?.disable();
+    this.form.get('cantitate')?.disable();
+    this.form.get('unitateMasura')?.disable();
+    this.form.get('numeFurnizor')?.disable();
+    this.form.get('emailFurnizor')?.disable();
+    this.form.get('termenLivrare')?.disable();
+    this.form.get('comandaTrimisa')?.disable();
+    this.form.get('comandaReceptionata')?.disable();
+    this.form.get('observatii')?.disable();
+    this.loadObiectiveCuLucrari();
     this.loadComenzi();
   }
 
@@ -294,20 +274,6 @@ export class ComandaComponent {
         this.errorMessage.set(
           mode === 'update' ? 'Comanda nu a putut fi actualizată.' : 'Comanda nu a putut fi salvată.',
         );
-      },
-    });
-  }
-
-  private loadLucrari(): void {
-    this.isLoadingLucrari.set(true);
-    this.lucrareService.getAll().subscribe({
-      next: (list) => {
-        this.lucrari.set(list);
-        this.isLoadingLucrari.set(false);
-      },
-      error: () => {
-        this.isLoadingLucrari.set(false);
-        this.errorMessage.set('Lucrările nu au putut fi încărcate.');
       },
     });
   }

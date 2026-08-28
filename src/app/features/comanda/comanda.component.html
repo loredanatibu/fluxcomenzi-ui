@@ -32,11 +32,12 @@
     </nav>
 
     <form class="comanda__form" [formGroup]="form" (ngSubmit)="submit()">
-      <label class="comanda__field" *ngIf="mode() !== 'delete'">
+      <label class="comanda__field">
         <span>Obiectiv<span class="required-marker">*</span></span>
         <app-combo-select
           [options]="obiectivOptions()"
           [loading]="isLoadingObiective()"
+          [selectOnly]="mode() === 'delete'"
           placeholder="Alege un obiectiv"
           (valueChange)="onObiectivSelected($event)"
         ></app-combo-select>
@@ -47,7 +48,8 @@
         <app-combo-select
           formControlName="idLucrare"
           [options]="lucrareOptions()"
-          [loading]="mode() === 'delete' ? isLoadingLucrari() : isLoadingObiective()"
+          [loading]="isLoadingObiective()"
+          [selectOnly]="mode() === 'delete'"
           placeholder="Alege o lucrare"
         ></app-combo-select>
       </label>
@@ -65,6 +67,8 @@
           *ngIf="mode() === 'delete'"
           [options]="comandaOptions()"
           [loading]="isLoadingComenzi()"
+          [disabled]="!selectedLucrareId()"
+          [selectOnly]="true"
           placeholder="Selectează comanda"
           (valueChange)="onComandaSelected($event)"
         ></app-combo-select>
