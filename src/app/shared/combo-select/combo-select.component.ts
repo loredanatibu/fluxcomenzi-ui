@@ -39,7 +39,15 @@ export class ComboSelectComponent implements ControlValueAccessor {
   @Input() loadingText = 'Se încarcă...';
   @Input() emptyText = 'Niciun rezultat';
   @Input() disabled = false;
+  // Blocks free-text typing but the dropdown still opens on click/focus to pick a value.
+  @Input() selectOnly = false;
+  // Typing edits the displayed text in place instead of clearing the selection to
+  // search; the text is not reverted to the option's label on blur. Use this when
+  // the field doubles as an editable value tied to the picked option (e.g. renaming
+  // the selected record), rather than a pure picker.
+  @Input() freeText = false;
   @Output() readonly valueChange = new EventEmitter<number | string | null>();
+  @Output() readonly queryChange = new EventEmitter<string>();
 
   private readonly ngControl = inject(NgControl, { optional: true, self: true });
   private readonly optionsSignal = signal<ComboOption[]>([]);
@@ -90,6 +98,11 @@ export class ComboSelectComponent implements ControlValueAccessor {
     this.isOpen.set(true);
     this.activeIndex.set(-1);
 
+    if (this.freeText) {
+      this.queryChange.emit(text);
+      return;
+    }
+
     if (this.selected() !== null) {
       this.commit(null);
     }
@@ -101,7 +114,9 @@ export class ComboSelectComponent implements ControlValueAccessor {
 
   onBlur(): void {
     this.isOpen.set(false);
-    this.query.set(this.labelFor(this.selected()));
+    if (!this.freeText) {
+      this.query.set(this.labelFor(this.selected()));
+    }
     this.onTouchedFn();
   }
 

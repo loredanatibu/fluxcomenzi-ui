@@ -21,8 +21,7 @@ export class LucrareService {
     return this.http.post<Lucrare>(`${this.config.apiUrl}/lucrari`, lucrare);
   }
 
-  // PUT /api/lucrari/{id} -- updates an existing lucrare (nume is sent
-  // unchanged; only idObiectiv is editable in the UI).
+  // PUT /api/lucrari/{id} -- updates an existing lucrare's nume and/or idObiectiv.
   update(id: number, lucrare: { idObiectiv: number; nume: string }): Observable<Lucrare> {
     return this.http.put<Lucrare>(`${this.config.apiUrl}/lucrari/${id}`, lucrare);
   }

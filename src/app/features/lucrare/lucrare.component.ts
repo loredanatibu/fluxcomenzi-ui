@@ -7,7 +7,6 @@ import { LucrareService } from '../../core/services/lucrare.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { Lucrare } from '../../core/models/lucrare.model';
 import { Obiectiv } from '../../core/models/obiectiv.model';
-import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
@@ -40,10 +39,8 @@ export class LucrareComponent {
   readonly isLoadingLucrari = signal(false);
   readonly selectedLucrareId = signal<number | null>(null);
 
-  // Update mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then
-  // scopes which lucrari are selectable in the Nume field.
-  readonly obiectiveCuLucrari = signal<ObiectivCuLucrari[]>([]);
-  readonly isLoadingObiectiveCuLucrari = signal(false);
+  // Update & delete: Obiectiv is picked first (select-only, from the full list),
+  // which then scopes which lucrari (by idObiectiv) are pickable in the Nume field.
   readonly selectedIdObiectiv = signal<number | null>(null);
 
   readonly submitLabel = computed(() => {
@@ -52,21 +49,17 @@ export class LucrareComponent {
   });
 
   readonly lucrareOptions = computed<ComboOption[]>(() => {
-    if (this.mode() === 'update') {
+    if (this.mode() !== 'create') {
       const idObiectiv = this.selectedIdObiectiv();
       if (idObiectiv == null) return [];
-      const entry = this.obiectiveCuLucrari().find((o) => o.obiectiv.idObiectiv === idObiectiv);
-      return (entry?.lucrari ?? []).map((l) => ({ value: l.idLucrare, label: l.nume }));
+      return this.lucrari()
+        .filter((l) => l.idObiectiv === idObiectiv)
+        .map((l) => ({ value: l.id, label: l.nume }));
     }
     return this.lucrari().map((l) => ({ value: l.id, label: l.nume }));
   });
 
-  readonly obiectivOptions = computed<ComboOption[]>(() => {
-    if (this.mode() === 'update') {
-      return this.obiectiveCuLucrari().map((o) => ({ value: o.obiectiv.idObiectiv, label: o.obiectiv.nume }));
-    }
-    return this.obiective().map((o) => ({ value: o.id, label: o.nume }));
-  });
+  readonly obiectivOptions = computed<ComboOption[]>(() => this.obiective().map((o) => ({ value: o.id, label: o.nume })));
 
   readonly form = this.fb.group({
     nume: ['', Validators.required],
@@ -83,7 +76,7 @@ export class LucrareComponent {
     }
 
     this.form.get('idObiectiv')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
-      if (this.mode() !== 'update') return;
+      if (this.mode() === 'create') return;
 
       // Picking a different Obiectiv invalidates the previously chosen Lucrare.
       this.selectedIdObiectiv.set(value ?? null);
@@ -108,40 +101,46 @@ export class LucrareComponent {
       return;
     }
 
-    // Nume is only ever chosen/displayed, never typed, in update & delete mode.
-    this.form.get('nume')?.disable();
-
     if (mode === 'delete') {
-      this.form.get('idObiectiv')?.disable();
-      this.loadLucrari();
-    } else {
-      // Update: Obiectiv must be picked first; it drives which lucrari are selectable.
+      // Delete only needs the picked record's id; Nume isn't edited or submitted,
+      // but is still gated behind Obiectiv like in update mode.
+      this.form.get('nume')?.disable();
       this.form.get('idObiectiv')?.enable();
-      this.loadObiectiveCuLucrari();
+    } else {
+      // Update: Obiectiv is picked first (select-only), which scopes the Nume
+      // combo-select; Nume itself is editable in place (freeText) once picked.
+      this.form.get('nume')?.enable();
+      this.form.get('idObiectiv')?.enable();
     }
+    this.loadLucrari();
   }
 
   onLucrareSelected(rawId: number | string | null): void {
     const id = rawId == null ? null : Number(rawId);
     this.selectedLucrareId.set(id);
 
-    if (this.mode() === 'update') {
-      const idObiectiv = this.selectedIdObiectiv();
-      const entry =
-        idObiectiv != null ? this.obiectiveCuLucrari().find((o) => o.obiectiv.idObiectiv === idObiectiv) : undefined;
-      const lucrare = id ? entry?.lucrari.find((l) => l.idLucrare === id) : undefined;
-      this.form.patchValue({ nume: lucrare?.nume ?? '' }, { emitEvent: false });
+    if (this.mode() === 'create') {
+      const lucrare = id ? this.lucrari().find((l) => l.id === id) : undefined;
+      this.form.patchValue(
+        {
+          nume: lucrare?.nume ?? '',
+          idObiectiv: lucrare?.idObiectiv ?? null,
+        },
+        { emitEvent: false },
+      );
       return;
     }
 
+    // Update & delete: Obiectiv is already picked and drives the option list,
+    // so only Nume needs to reflect the chosen lucrare.
     const lucrare = id ? this.lucrari().find((l) => l.id === id) : undefined;
-    this.form.patchValue(
-      {
-        nume: lucrare?.nume ?? '',
-        idObiectiv: lucrare?.idObiectiv ?? null,
-      },
-      { emitEvent: false },
-    );
+    this.form.patchValue({ nume: lucrare?.nume ?? '' }, { emitEvent: false });
+  }
+
+  // Update mode: the Nume combo-select is editable in place (freeText) once a
+  // lucrare is picked -- this carries the typed text into the form for submit.
+  onLucrareNameEdited(text: string): void {
+    this.form.get('nume')?.setValue(text, { emitEvent: false });
   }
 
   submit(): void {
@@ -200,21 +199,6 @@ export class LucrareComponent {
       },
       error: () => {
         this.isLoadingObiective.set(false);
-        this.errorMessage.set('Obiectivele nu au putut fi încărcate.');
-      },
-    });
-  }
-
-  private loadObiectiveCuLucrari(): void {
-    this.isLoadingObiectiveCuLucrari.set(true);
-    this.objectiveService.getAllCuLucrari().subscribe({
-      next: (list) => {
-        this.obiectiveCuLucrari.set(list);
-        this.isLoadingObiectiveCuLucrari.set(false);
-        this.errorMessage.set(null);
-      },
-      error: () => {
-        this.isLoadingObiectiveCuLucrari.set(false);
         this.errorMessage.set('Obiectivele nu au putut fi încărcate.');
       },
     });

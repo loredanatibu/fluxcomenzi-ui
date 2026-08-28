@@ -7,6 +7,7 @@
     [placeholder]="loading ? loadingText : placeholder"
     [value]="query()"
     [disabled]="disabled || loading"
+    [readOnly]="selectOnly"
     autocomplete="off"
     role="combobox"
     aria-autocomplete="list"
