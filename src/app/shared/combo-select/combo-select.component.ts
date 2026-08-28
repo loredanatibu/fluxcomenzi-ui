@@ -38,6 +38,7 @@ export class ComboSelectComponent implements ControlValueAccessor {
   @Input() loading = false;
   @Input() loadingText = 'Se încarcă...';
   @Input() emptyText = 'Niciun rezultat';
+  @Input() disabled = false;
   @Output() readonly valueChange = new EventEmitter<number | string | null>();
 
   private readonly ngControl = inject(NgControl, { optional: true, self: true });
@@ -47,7 +48,6 @@ export class ComboSelectComponent implements ControlValueAccessor {
   readonly query = signal('');
   readonly isOpen = signal(false);
   readonly activeIndex = signal(-1);
-  disabled = false;
 
   readonly filteredOptions = computed(() => {
     const q = normalize(this.query());

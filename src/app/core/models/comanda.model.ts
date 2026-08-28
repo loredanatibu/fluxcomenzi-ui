@@ -1,5 +1,5 @@
-// Mirrors com.mep.fluxcomenzi.model.Comanda (+ inherited VersionedEntity
-// columns) as returned by / posted to /api/comenzi.
+// Mirrors com.mep.fluxcomenzi.model.Comanda -- a plain mutable row (see
+// comenzi in schema.sql) as returned by / posted to /api/comenzi.
 export interface Comanda {
   id: number;
   idLucrare: number;
@@ -12,4 +12,6 @@ export interface Comanda {
   comandaTrimisa: boolean;
   comandaReceptionata: boolean;
   observatii: string;
+  createdBy: string;
+  createdAt: string;
 }

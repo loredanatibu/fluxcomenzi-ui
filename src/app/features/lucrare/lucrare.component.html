@@ -37,7 +37,7 @@
         <app-combo-select
           formControlName="idObiectiv"
           [options]="obiectivOptions()"
-          [loading]="isLoadingObiective()"
+          [loading]="mode() === 'update' ? isLoadingObiectiveCuLucrari() : isLoadingObiective()"
           placeholder="Alege un obiectiv"
         ></app-combo-select>
       </label>
@@ -48,7 +48,9 @@
         <app-combo-select
           *ngIf="mode() !== 'create'"
           [options]="lucrareOptions()"
-          [loading]="isLoadingLucrari()"
+          [loading]="mode() === 'update' ? isLoadingObiectiveCuLucrari() : isLoadingLucrari()"
+          [value]="selectedLucrareId()"
+          [disabled]="mode() === 'update' && !selectedIdObiectiv()"
           placeholder="Selectează lucrarea"
           (valueChange)="onLucrareSelected($event)"
         ></app-combo-select>
