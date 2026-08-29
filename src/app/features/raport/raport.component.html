@@ -1,0 +1,68 @@
+<div class="raport">
+  <ng-container *ngIf="!authService.isAuthenticated()">
+    <p class="raport__hint">Autentifică-te pentru a vedea rapoartele.</p>
+  </ng-container>
+
+  <div *ngIf="authService.isAuthenticated()" class="raport__layout">
+    <nav class="raport__menu">
+      <button
+        type="button"
+        class="raport__menu-item"
+        [class.raport__menu-item--active]="activeReport() === 'termen-3-zile'"
+        (click)="selectReport('termen-3-zile')"
+      >
+        Comenzi de livrat în 3 zile
+      </button>
+    </nav>
+
+    <div class="raport__content" [class.raport__content--empty]="!activeReport()">
+      <p *ngIf="!activeReport()" class="raport__hint">Alege un raport din meniu.</p>
+
+      <ng-container *ngIf="activeReport()">
+        <p *ngIf="isLoading()" class="raport__hint">Se încarcă...</p>
+        <p *ngIf="errorMessage()" class="raport__error">{{ errorMessage() }}</p>
+
+        <ng-container *ngIf="!isLoading() && !errorMessage()">
+          <p *ngIf="rows().length === 0" class="raport__hint">
+            Nu există comenzi de livrat în următoarele 3 zile lucrătoare.
+          </p>
+
+          <div *ngIf="rows().length > 0" class="raport__table-scroll">
+            <table class="raport__table">
+              <thead>
+                <tr>
+                  <th>Obiectiv</th>
+                  <th>Lucrare</th>
+                  <th>Material</th>
+                  <th>Cantitate</th>
+                  <th>U.M.</th>
+                  <th>Furnizor</th>
+                  <th>Email furnizor</th>
+                  <th>Termen livrare</th>
+                  <th>Trimisă</th>
+                  <th>Recepționată</th>
+                  <th>Observații</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rows()">
+                  <td>{{ row.obiectiv.nume }}</td>
+                  <td>{{ row.lucrare.nume }}</td>
+                  <td>{{ row.comanda.numeMaterial }}</td>
+                  <td>{{ row.comanda.cantitate }}</td>
+                  <td>{{ row.comanda.unitateMasura }}</td>
+                  <td>{{ row.comanda.numeFurnizor }}</td>
+                  <td>{{ row.comanda.emailFurnizor }}</td>
+                  <td>{{ row.comanda.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
+                  <td>{{ row.comanda.comandaTrimisa ? 'Da' : 'Nu' }}</td>
+                  <td>{{ row.comanda.comandaReceptionata ? 'Da' : 'Nu' }}</td>
+                  <td>{{ row.comanda.observatii }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>

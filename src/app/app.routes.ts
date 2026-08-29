@@ -3,7 +3,7 @@ import { HomeComponent } from './features/home/home.component';
 import { ObiectivComponent } from './features/obiectiv/obiectiv.component';
 import { LucrareComponent } from './features/lucrare/lucrare.component';
 import { ComandaComponent } from './features/comanda/comanda.component';
-import { PlaceholderComponent } from './features/placeholder/placeholder.component';
+import { RaportComponent } from './features/raport/raport.component';
 import { authGuard } from './core/guards/auth.guard';
 
 // Rendered inside <router-outlet>, below the nav bar in AppComponent, which
@@ -27,8 +27,7 @@ export const routes: Routes = [
   },
   {
     path: 'rapoarte',
-    component: PlaceholderComponent,
-    data: { optionNumber: 3 },
+    component: RaportComponent,
     canActivate: [authGuard],
   },
   { path: '**', redirectTo: '' },
