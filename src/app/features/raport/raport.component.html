@@ -34,29 +34,29 @@
                   <th>Obiectiv</th>
                   <th>Lucrare</th>
                   <th>Material</th>
-                  <th>Cantitate</th>
+                  <th title="Cantitate">Cant.</th>
                   <th>U.M.</th>
                   <th>Furnizor</th>
                   <th>Email furnizor</th>
                   <th>Termen livrare</th>
-                  <th>Trimisă</th>
-                  <th>Recepționată</th>
+                  <th title="Trimisă">T</th>
+                  <th title="Recepționată">R</th>
                   <th>Observații</th>
                 </tr>
               </thead>
               <tbody>
                 <tr *ngFor="let row of rows()">
-                  <td>{{ row.obiectiv.nume }}</td>
-                  <td>{{ row.lucrare.nume }}</td>
-                  <td>{{ row.comanda.numeMaterial }}</td>
+                  <td [title]="row.obiectiv.nume">{{ row.obiectiv.nume }}</td>
+                  <td [title]="row.lucrare.nume">{{ row.lucrare.nume }}</td>
+                  <td [title]="row.comanda.numeMaterial">{{ row.comanda.numeMaterial }}</td>
                   <td>{{ row.comanda.cantitate }}</td>
                   <td>{{ row.comanda.unitateMasura }}</td>
-                  <td>{{ row.comanda.numeFurnizor }}</td>
-                  <td>{{ row.comanda.emailFurnizor }}</td>
+                  <td [title]="row.comanda.numeFurnizor">{{ row.comanda.numeFurnizor }}</td>
+                  <td [title]="row.comanda.emailFurnizor">{{ row.comanda.emailFurnizor }}</td>
                   <td>{{ row.comanda.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                   <td>{{ row.comanda.comandaTrimisa ? 'Da' : 'Nu' }}</td>
                   <td>{{ row.comanda.comandaReceptionata ? 'Da' : 'Nu' }}</td>
-                  <td>{{ row.comanda.observatii }}</td>
+                  <td [title]="row.comanda.observatii">{{ row.comanda.observatii }}</td>
                 </tr>
               </tbody>
             </table>
