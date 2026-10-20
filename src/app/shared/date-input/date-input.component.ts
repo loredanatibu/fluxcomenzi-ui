@@ -80,18 +80,28 @@ export class DateInputComponent implements ControlValueAccessor {
     }
   }
 
+  // The datetime-local picker only fires 'change' once the user confirms (Enter); each
+  // click on a day/hour/minute fires 'input'. Taking the value on 'input' too means a
+  // mouse-only pick is applied straight away, without needing Enter.
+  onNativeInput(nativeInput: HTMLInputElement): void {
+    this.applyNativeValue(nativeInput.value);
+  }
+
   onNativePicked(nativeInput: HTMLInputElement): void {
-    const rawValue = nativeInput.value;
-    this.digits = isoToDigits(rawValue, this.type);
-    this.displayValue = formatDigits(this.digits, this.type);
-    this.nativeValue = rawValue;
-    this.onChange(rawValue);
+    this.applyNativeValue(nativeInput.value);
     this.onTouchedFn();
 
     // Some browsers leave the native calendar popup open after a value is committed via
     // showPicker(). Blurring in the same tick as 'change' can race the browser's own close
     // routine, so defer it a tick to force the popup shut as a fallback once that's settled.
     setTimeout(() => nativeInput.blur());
+  }
+
+  private applyNativeValue(rawValue: string): void {
+    this.digits = isoToDigits(rawValue, this.type);
+    this.displayValue = formatDigits(this.digits, this.type);
+    this.nativeValue = rawValue;
+    this.onChange(rawValue);
   }
 }
 

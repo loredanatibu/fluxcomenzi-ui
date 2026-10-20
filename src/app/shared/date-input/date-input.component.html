@@ -33,6 +33,7 @@
     [value]="nativeValue"
     [disabled]="disabled"
     tabindex="-1"
+    (input)="onNativeInput(nativeInput)"
     (change)="onNativePicked(nativeInput)"
   />
 </div>
