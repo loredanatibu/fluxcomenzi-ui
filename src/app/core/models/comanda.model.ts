@@ -11,6 +11,7 @@ export interface Comanda {
   termenLivrare: string;
   comandaReceptionata: number;
   observatii: string;
+  requestedBy: string;
   createdBy: string;
   createdAt: string;
 }

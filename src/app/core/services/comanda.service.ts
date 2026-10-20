@@ -14,6 +14,7 @@ export interface ComandaPayload {
   termenLivrare: string;
   comandaReceptionata: number;
   observatii: string;
+  requestedBy: string;
 }
 
 @Injectable({ providedIn: 'root' })

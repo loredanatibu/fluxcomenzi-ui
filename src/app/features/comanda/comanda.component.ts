@@ -139,6 +139,7 @@ export class ComandaComponent {
       this.gridForm.push(
         dirtyById.get(c.id) ??
           this.fb.group({
+            requestedBy: [c.requestedBy],
             numeMaterial: [c.numeMaterial],
             cantitate: [c.cantitate],
             unitateMasura: [c.unitateMasura],
@@ -169,6 +170,7 @@ export class ComandaComponent {
 
   private newCreateRow(): FormGroup {
     return this.fb.group({
+      requestedBy: [''],
       numeMaterial: ['', Validators.required],
       cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
       unitateMasura: ['', Validators.required],
@@ -201,6 +203,7 @@ export class ComandaComponent {
           termenLivrare: v.termenLivrare,
           comandaReceptionata: Number(v.comandaReceptionata),
           observatii: v.observatii ?? '',
+          requestedBy: v.requestedBy ?? '',
         };
         return this.comandaService.update(row.id, payload);
       });
@@ -311,6 +314,7 @@ export class ComandaComponent {
         termenLivrare: v.termenLivrare,
         comandaReceptionata: 0,
         observatii: '',
+        requestedBy: v.requestedBy ?? '',
       };
       return this.comandaService.create(payload).pipe(
         map(() => true),

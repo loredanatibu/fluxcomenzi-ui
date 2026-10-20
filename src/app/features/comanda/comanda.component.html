@@ -60,6 +60,7 @@
           <table class="comanda__table comanda__table--entry">
             <thead>
               <tr>
+                <th>Solicitant</th>
                 <th>Material<span class="required-marker">*</span></th>
                 <th>Cantitate<span class="required-marker">*</span></th>
                 <th>U.M.<span class="required-marker">*</span></th>
@@ -71,6 +72,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let group of createRows.controls; let i = index" [formGroup]="group">
+                <td><input type="text" formControlName="requestedBy" autocomplete="off" maxlength="255" /></td>
                 <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
                 <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
                 <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
@@ -143,6 +145,7 @@
               <table class="comanda__table" *ngIf="mode() === 'update'">
                 <thead>
                   <tr>
+                    <th>Solicitant</th>
                     <th>Material</th>
                     <th>Cantitate</th>
                     <th>U.M.</th>
@@ -155,6 +158,7 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let group of gridForm.controls; let i = index" [formGroup]="group">
+                    <td><input type="text" formControlName="requestedBy" autocomplete="off" maxlength="255" /></td>
                     <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
                     <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
                     <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
@@ -183,6 +187,7 @@
               <table class="comanda__table comanda__table--receptie" *ngIf="mode() === 'receptie'">
                 <thead>
                   <tr>
+                    <th>Solicitant</th>
                     <th>Material</th>
                     <th>Cantitate</th>
                     <th>U.M.</th>
@@ -195,6 +200,7 @@
                 <tbody>
                   <tr *ngFor="let group of gridForm.controls; let i = index" [formGroup]="group">
                     <ng-container *ngIf="gridRows[i] as c">
+                      <td [title]="c.requestedBy">{{ c.requestedBy }}</td>
                       <td [title]="c.numeMaterial">{{ c.numeMaterial }}</td>
                       <td>{{ c.cantitate }}</td>
                       <td>{{ c.unitateMasura }}</td>
