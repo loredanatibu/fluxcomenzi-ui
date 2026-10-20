@@ -77,7 +77,8 @@
               type="button"
               class="comanda__add-row"
               (mousedown)="$event.preventDefault()"
-              [disabled]="!selectedLucrareId() || isSubmitting()"
+              [disabled]="!selectedLucrareId() || !rowsOf(solicitantGroup).valid || isSubmitting()"
+              [title]="rowsOf(solicitantGroup).valid ? '' : 'Completează mai întâi materialele existente'"
               (click)="addCreateRow(g)"
             >
               + Adaugă material
