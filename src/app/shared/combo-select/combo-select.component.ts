@@ -1,4 +1,16 @@
-import { Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  EventEmitter,
+  HostListener,
+  Input,
+  Output,
+  ViewChild,
+  computed,
+  inject,
+  signal,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ControlValueAccessor, NgControl } from '@angular/forms';
 
@@ -57,6 +69,16 @@ export class ComboSelectComponent implements ControlValueAccessor {
   readonly isOpen = signal(false);
   readonly activeIndex = signal(-1);
 
+  // The list is position: fixed (viewport coordinates), so no ancestor with overflow --
+  // a scrolling form, a table cell -- can clip it. Its box is measured from the input
+  // each time it opens and kept in sync while the page scrolls or resizes.
+  readonly listPosition = signal<{ top?: number; bottom?: number; left: number; width: number; maxHeight: number }>({
+    left: 0,
+    width: 0,
+    maxHeight: LIST_MAX_HEIGHT,
+  });
+  @ViewChild('textInput', { static: true }) private textInput!: ElementRef<HTMLInputElement>;
+
   readonly filteredOptions = computed(() => {
     const q = normalize(this.query());
     const opts = this.optionsSignal();
@@ -71,6 +93,12 @@ export class ComboSelectComponent implements ControlValueAccessor {
     if (this.ngControl) {
       this.ngControl.valueAccessor = this;
     }
+
+    // Scroll events don't bubble, so listen in the capture phase: that also catches a
+    // scrolling form or table around the combobox, not just the page itself.
+    const onScroll = () => this.onViewportChange();
+    window.addEventListener('scroll', onScroll, true);
+    inject(DestroyRef).onDestroy(() => window.removeEventListener('scroll', onScroll, true));
   }
 
   get isInvalid(): boolean {
@@ -95,7 +123,7 @@ export class ComboSelectComponent implements ControlValueAccessor {
 
   onInput(text: string): void {
     this.query.set(text);
-    this.isOpen.set(true);
+    this.open();
     this.activeIndex.set(-1);
 
     if (this.freeText) {
@@ -109,7 +137,7 @@ export class ComboSelectComponent implements ControlValueAccessor {
   }
 
   onFocus(): void {
-    if (!this.disabled) this.isOpen.set(true);
+    if (!this.disabled) this.open();
   }
 
   onBlur(): void {
@@ -131,7 +159,7 @@ export class ComboSelectComponent implements ControlValueAccessor {
 
     if (event.key === 'ArrowDown') {
       event.preventDefault();
-      this.isOpen.set(true);
+      this.open();
       this.activeIndex.set(Math.min(this.activeIndex() + 1, opts.length - 1));
     } else if (event.key === 'ArrowUp') {
       event.preventDefault();
@@ -145,6 +173,42 @@ export class ComboSelectComponent implements ControlValueAccessor {
     } else if (event.key === 'Escape') {
       this.isOpen.set(false);
     }
+  }
+
+  @HostListener('window:resize')
+  onViewportChange(): void {
+    if (this.isOpen()) this.updateListPosition();
+  }
+
+  private open(): void {
+    this.updateListPosition();
+    this.isOpen.set(true);
+  }
+
+  // Opens downwards when there's room, otherwise upwards (e.g. a combobox near the bottom
+  // of the window), never taller than the space actually available on that side.
+  private updateListPosition(): void {
+    const rect = this.textInput.nativeElement.getBoundingClientRect();
+    const gap = 4;
+    const spaceBelow = window.innerHeight - rect.bottom - gap * 2;
+    const spaceAbove = rect.top - gap * 2;
+    const openUp = spaceBelow < Math.min(LIST_MAX_HEIGHT, 160) && spaceAbove > spaceBelow;
+
+    this.listPosition.set(
+      openUp
+        ? {
+            bottom: window.innerHeight - rect.top + gap,
+            left: rect.left,
+            width: rect.width,
+            maxHeight: Math.min(LIST_MAX_HEIGHT, spaceAbove),
+          }
+        : {
+            top: rect.bottom + gap,
+            left: rect.left,
+            width: rect.width,
+            maxHeight: Math.min(LIST_MAX_HEIGHT, spaceBelow),
+          },
+    );
   }
 
   private applyValue(value: number | string | null): void {
@@ -162,6 +226,8 @@ export class ComboSelectComponent implements ControlValueAccessor {
     return this.optionsSignal().find((o) => o.value === value)?.label ?? '';
   }
 }
+
+const LIST_MAX_HEIGHT = 220;
 
 // Accent-insensitive match so "obiectiv" also finds "Obiectivul Șos. Berceni".
 function normalize(text: string): string {

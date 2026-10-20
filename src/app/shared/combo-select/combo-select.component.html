@@ -18,7 +18,15 @@
     (keydown)="onKeydown($event)"
   />
 
-  <ul class="combo-select__list" *ngIf="isOpen() && !loading">
+  <ul
+    class="combo-select__list"
+    *ngIf="isOpen() && !loading"
+    [style.top.px]="listPosition().top"
+    [style.bottom.px]="listPosition().bottom"
+    [style.left.px]="listPosition().left"
+    [style.width.px]="listPosition().width"
+    [style.max-height.px]="listPosition().maxHeight"
+  >
     <li *ngIf="filteredOptions().length === 0" class="combo-select__empty">{{ emptyText }}</li>
     <li
       *ngFor="let opt of filteredOptions(); let i = index"

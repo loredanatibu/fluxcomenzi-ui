@@ -37,12 +37,11 @@
 }
 
 .combo-select__list {
-  position: absolute;
-  top: calc(100% + 0.25rem);
-  left: 0;
-  right: 0;
-  z-index: 20;
-  max-height: 220px;
+  // Fixed, with top/bottom/left/width/max-height set from the component -- see
+  // listPosition in combo-select.component.ts.
+  position: fixed;
+  z-index: 1000;
+  box-sizing: border-box;
   overflow-y: auto;
   margin: 0;
   padding: 0.25rem;
