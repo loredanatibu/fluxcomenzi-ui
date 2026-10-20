@@ -39,9 +39,11 @@
             [options]="obiectivOptions()"
             [loading]="isLoadingObiective()"
             [value]="selectedIdObiectiv()"
-            placeholder="Alege un obiectiv"
+            placeholder="Alege aliasul obiectivului"
             (valueChange)="onObiectivSelected($event)"
           ></app-combo-select>
+          <!-- Picked by alias, so spell out which obiectiv that is (no room beside it here). -->
+          <span *ngIf="selectedObiectivNume() as nume" class="comanda__obiectiv-nume" [title]="nume">{{ nume }}</span>
         </label>
 
         <label class="comanda__field comanda__field--narrow">

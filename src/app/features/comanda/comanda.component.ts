@@ -98,9 +98,20 @@ export class ComandaComponent {
   readonly isLoadingObiective = signal(false);
   readonly selectedIdObiectiv = signal<number | null>(null);
 
+  // Obiective are picked by alias (nume when an obiectiv has none), with the full nume
+  // shown under the combobox once picked. /obiective/obiectiv-cu-lucrari carries no alias,
+  // so it comes from the plain /obiective list, loaded alongside.
+  private readonly aliasByIdObiectiv = signal<ReadonlyMap<number, string | null | undefined>>(new Map());
   readonly obiectivOptions = computed<ComboOption[]>(() =>
-    this.obiectiveCuLucrari().map((o) => ({ value: o.obiectiv.idObiectiv, label: o.obiectiv.nume })),
+    this.obiectiveCuLucrari().map((o) => ({
+      value: o.obiectiv.idObiectiv,
+      label: this.aliasByIdObiectiv().get(o.obiectiv.idObiectiv) || o.obiectiv.nume,
+    })),
   );
+  readonly selectedObiectivNume = computed(() => {
+    const id = this.selectedIdObiectiv();
+    return this.obiectiveCuLucrari().find((o) => o.obiectiv.idObiectiv === id)?.obiectiv.nume ?? null;
+  });
   readonly lucrareOptions = computed<ComboOption[]>(() => {
     const idObiectiv = this.selectedIdObiectiv();
     if (idObiectiv == null) return [];
@@ -449,8 +460,9 @@ export class ComandaComponent {
 
   private loadObiectiveCuLucrari(): void {
     this.isLoadingObiective.set(true);
-    this.objectiveService.getAllCuLucrari().subscribe({
-      next: (list) => {
+    forkJoin([this.objectiveService.getAllCuLucrari(), this.objectiveService.getAll()]).subscribe({
+      next: ([list, obiective]) => {
+        this.aliasByIdObiectiv.set(new Map(obiective.map((o) => [o.id, o.alias])));
         this.obiectiveCuLucrari.set(list);
         this.isLoadingObiective.set(false);
         this.errorMessage.set(null);

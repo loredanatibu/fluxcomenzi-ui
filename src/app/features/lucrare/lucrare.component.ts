@@ -65,13 +65,10 @@ export class LucrareComponent {
       .map((l) => ({ value: l.id, label: l.nume }));
   });
 
-  // Create lists obiective by alias (falling back to nume when an obiectiv has none), with
-  // the full nume shown alongside once one is picked; update keeps listing them by nume.
+  // Obiective are listed by alias (falling back to nume when an obiectiv has none), with
+  // the full nume shown alongside once one is picked.
   readonly obiectivOptions = computed<ComboOption[]>(() =>
-    this.obiective().map((o) => ({
-      value: o.id,
-      label: this.mode() === 'create' ? o.alias || o.nume : o.nume,
-    })),
+    this.obiective().map((o) => ({ value: o.id, label: o.alias || o.nume })),
   );
   readonly selectedObiectivNume = computed(() => {
     const id = this.selectedIdObiectiv();

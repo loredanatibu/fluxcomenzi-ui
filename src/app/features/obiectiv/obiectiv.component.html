@@ -25,14 +25,14 @@
 
     <form class="obiectiv__form" [formGroup]="form" (ngSubmit)="submit()">
       <label class="obiectiv__field">
-        <span>Nume<span class="required-marker">*</span></span>
+        <span>{{ mode() === 'create' ? 'Nume' : 'Obiectiv' }}<span class="required-marker">*</span></span>
         <input *ngIf="mode() === 'create'" type="text" formControlName="nume" autocomplete="off" />
         <div *ngIf="mode() === 'update'" class="obiectiv__select-row">
           <app-combo-select
             [options]="obiectivOptions()"
             [loading]="isLoadingObiective()"
             [value]="selectedObiectivId()"
-            placeholder="Selectează obiectivul"
+            placeholder="Alege aliasul obiectivului"
             (valueChange)="onObiectivSelected($event)"
           ></app-combo-select>
 
@@ -50,6 +50,10 @@
             ×
           </button>
         </div>
+        <!-- Picked by alias, so spell out which obiectiv that is. -->
+        <span *ngIf="mode() === 'update' && selectedObiectivNume() as nume" class="obiectiv__nume" [title]="nume">
+          {{ nume }}
+        </span>
       </label>
 
       <label class="obiectiv__field">

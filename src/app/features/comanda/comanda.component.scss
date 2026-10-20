@@ -118,6 +118,15 @@
   max-width: 240px;
 }
 
+.comanda__obiectiv-nume {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  opacity: 0.8;
+}
+
 .comanda__actions {
   display: flex;
   align-items: center;

@@ -32,11 +32,11 @@
             [options]="obiectivOptions()"
             [loading]="isLoadingObiective()"
             [selectOnly]="mode() === 'update'"
-            [placeholder]="mode() === 'create' ? 'Alege aliasul obiectivului' : 'Alege un obiectiv'"
+            placeholder="Alege aliasul obiectivului"
           ></app-combo-select>
 
-          <!-- Create picks by alias, so spell out which obiectiv that is. -->
-          <span *ngIf="mode() === 'create' && selectedObiectivNume() as nume" class="lucrare__obiectiv-nume" [title]="nume">
+          <!-- Picked by alias, so spell out which obiectiv that is. -->
+          <span *ngIf="selectedObiectivNume() as nume" class="lucrare__obiectiv-nume" [title]="nume">
             {{ nume }}
           </span>
         </div>

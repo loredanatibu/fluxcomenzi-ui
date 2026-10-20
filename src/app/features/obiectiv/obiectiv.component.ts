@@ -50,9 +50,15 @@ export class ObiectivComponent {
     return id != null && !this.obiectiveCuLucrariIds().has(id);
   });
 
+  // Update picks the obiectiv by alias (nume when it has none); its full nume is shown
+  // under the combobox once picked.
   readonly obiectivOptions = computed<ComboOption[]>(() =>
-    this.obiective().map((o) => ({ value: o.id, label: o.nume })),
+    this.obiective().map((o) => ({ value: o.id, label: o.alias || o.nume })),
   );
+  readonly selectedObiectivNume = computed(() => {
+    const id = this.selectedObiectivId();
+    return this.obiective().find((o) => o.id === id)?.nume ?? null;
+  });
 
   readonly form = this.fb.group({
     nume: ['', Validators.required],

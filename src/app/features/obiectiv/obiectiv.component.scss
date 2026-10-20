@@ -133,6 +133,15 @@
   }
 }
 
+.obiectiv__nume {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+  opacity: 0.8;
+}
+
 .obiectiv__delete {
   flex-shrink: 0;
   width: 2.5rem;
