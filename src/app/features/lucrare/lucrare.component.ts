@@ -1,7 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { catchError, forkJoin, map, merge, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { LucrareService } from '../../core/services/lucrare.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
@@ -10,7 +12,7 @@ import { Obiectiv } from '../../core/models/obiectiv.model';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
-type LucrareMode = 'create' | 'update' | 'delete';
+type LucrareMode = 'create' | 'update';
 
 const REQUIRED_FIELD_LABELS: Record<string, string> = {
   nume: 'Nume',
@@ -39,24 +41,26 @@ export class LucrareComponent {
   readonly isLoadingLucrari = signal(false);
   readonly selectedLucrareId = signal<number | null>(null);
 
-  // Update & delete: Obiectiv is picked first (select-only, from the full list),
-  // which then scopes which lucrari (by idObiectiv) are pickable in the Nume field.
+  // Update: Obiectiv is picked first (select-only, from the full list), which then
+  // scopes which lucrari (by idObiectiv) are pickable in the Nume field.
   readonly selectedIdObiectiv = signal<number | null>(null);
 
-  readonly submitLabel = computed(() => {
-    if (this.isSubmitting()) return 'Se salvează...';
-    return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
+  // Ids of the selected obiectiv's lucrari that have comenzi -- those can't be deleted,
+  // so the × is only offered for a lucrare outside this set.
+  private readonly lucrariCuComenziIds = signal<ReadonlySet<number>>(new Set());
+  private readonly isLoadingLucrariCuComenzi = signal(false);
+  private lucrariCuComenziRequestId = 0;
+  readonly canDeleteSelected = computed(() => {
+    const id = this.selectedLucrareId();
+    return id != null && !this.isLoadingLucrariCuComenzi() && !this.lucrariCuComenziIds().has(id);
   });
 
   readonly lucrareOptions = computed<ComboOption[]>(() => {
-    if (this.mode() !== 'create') {
-      const idObiectiv = this.selectedIdObiectiv();
-      if (idObiectiv == null) return [];
-      return this.lucrari()
-        .filter((l) => l.idObiectiv === idObiectiv)
-        .map((l) => ({ value: l.id, label: l.nume }));
-    }
-    return this.lucrari().map((l) => ({ value: l.id, label: l.nume }));
+    const idObiectiv = this.selectedIdObiectiv();
+    if (idObiectiv == null) return [];
+    return this.lucrari()
+      .filter((l) => l.idObiectiv === idObiectiv)
+      .map((l) => ({ value: l.id, label: l.nume }));
   });
 
   readonly obiectivOptions = computed<ComboOption[]>(() => this.obiective().map((o) => ({ value: o.id, label: o.nume })));
@@ -66,29 +70,50 @@ export class LucrareComponent {
     idObiectiv: [null as number | null, Validators.required],
   });
 
-  // Drives the Salvează button in create mode: disabled until Obiectiv + Nume are filled.
-  readonly formInvalid = signal(this.form.invalid);
+  // Create mode: an obiectiv can get several lucrari at once -- one FormGroup per new
+  // lucrare, all saved under the selected obiectiv. Disabled until an Obiectiv is picked;
+  // "Adaugă linie" appends another empty row. The form's own `nume` control is only
+  // used by update, so it stays disabled in create mode.
+  readonly createRows = new FormArray<FormGroup>([this.newCreateRow()]);
+
+  // Drives the Salvează button in create mode: disabled until Obiectiv and every row's
+  // Nume are filled. Uses `.valid` rather than `.invalid` because the rows start disabled
+  // -- an all-disabled array's status is 'DISABLED', neither valid nor invalid.
+  readonly createValid = signal(false);
 
   constructor(
     readonly authService: AuthService,
     private readonly lucrareService: LucrareService,
     private readonly objectiveService: ObjectiveService,
   ) {
+    this.form.get('nume')!.disable();
+    this.createRows.disable();
+
     if (this.authService.isAuthenticated()) {
       this.loadObiective();
     }
 
-    this.form.statusChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.formInvalid.set(this.form.invalid);
-    });
+    merge(this.form.statusChanges, this.createRows.statusChanges)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.createValid.set(this.form.get('idObiectiv')!.valid && this.createRows.valid);
+      });
 
     this.form.get('idObiectiv')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
-      if (this.mode() === 'create') return;
+      if (this.mode() === 'create') {
+        if (value != null) {
+          this.createRows.enable();
+        } else {
+          this.createRows.disable();
+        }
+        return;
+      }
 
       // Picking a different Obiectiv invalidates the previously chosen Lucrare.
       this.selectedIdObiectiv.set(value ?? null);
       this.selectedLucrareId.set(null);
       this.form.patchValue({ nume: '' }, { emitEvent: false });
+      this.loadLucrariCuComenzi(value ?? null);
     });
   }
 
@@ -101,24 +126,19 @@ export class LucrareComponent {
     this.selectedLucrareId.set(null);
     this.selectedIdObiectiv.set(null);
     this.form.reset();
+    this.resetCreateRows();
+    this.createRows.disable();
+
+    this.form.get('idObiectiv')?.enable();
 
     if (mode === 'create') {
-      this.form.get('nume')?.enable();
-      this.form.get('idObiectiv')?.enable();
+      this.form.get('nume')?.disable();
       return;
     }
 
-    if (mode === 'delete') {
-      // Delete only needs the picked record's id; Nume isn't edited or submitted,
-      // but is still gated behind Obiectiv like in update mode.
-      this.form.get('nume')?.disable();
-      this.form.get('idObiectiv')?.enable();
-    } else {
-      // Update: Obiectiv is picked first (select-only), which scopes the Nume
-      // combo-select; Nume itself is editable in place (freeText) once picked.
-      this.form.get('nume')?.enable();
-      this.form.get('idObiectiv')?.enable();
-    }
+    // Update: Obiectiv is picked first (select-only), which scopes the Nume
+    // combo-select; Nume itself is editable in place (freeText) once picked.
+    this.form.get('nume')?.enable();
     this.loadLucrari();
   }
 
@@ -126,20 +146,8 @@ export class LucrareComponent {
     const id = rawId == null ? null : Number(rawId);
     this.selectedLucrareId.set(id);
 
-    if (this.mode() === 'create') {
-      const lucrare = id ? this.lucrari().find((l) => l.id === id) : undefined;
-      this.form.patchValue(
-        {
-          nume: lucrare?.nume ?? '',
-          idObiectiv: lucrare?.idObiectiv ?? null,
-        },
-        { emitEvent: false },
-      );
-      return;
-    }
-
-    // Update & delete: Obiectiv is already picked and drives the option list,
-    // so only Nume needs to reflect the chosen lucrare.
+    // Obiectiv is already picked and drives the option list, so only Nume needs
+    // to reflect the chosen lucrare.
     const lucrare = id ? this.lucrari().find((l) => l.id === id) : undefined;
     this.form.patchValue({ nume: lucrare?.nume ?? '' }, { emitEvent: false });
   }
@@ -150,15 +158,34 @@ export class LucrareComponent {
     this.form.get('nume')?.setValue(text, { emitEvent: false });
   }
 
-  submit(): void {
-    const mode = this.mode();
+  addCreateRow(): void {
+    this.createRows.push(this.newCreateRow());
+  }
 
-    if (mode === 'delete') {
-      this.deleteLucrare();
+  removeCreateRow(index: number): void {
+    if (this.createRows.length > 1) {
+      this.createRows.removeAt(index);
+    }
+  }
+
+  private newCreateRow(): FormGroup {
+    return this.fb.group({
+      nume: ['', Validators.required],
+    });
+  }
+
+  private resetCreateRows(): void {
+    this.createRows.clear();
+    this.createRows.push(this.newCreateRow());
+  }
+
+  submit(): void {
+    if (this.mode() === 'create') {
+      this.createLucrari();
       return;
     }
 
-    if (mode === 'update' && !this.selectedLucrareId()) {
+    if (!this.selectedLucrareId()) {
       this.errorMessage.set('Selectează o lucrare.');
       return;
     }
@@ -175,25 +202,59 @@ export class LucrareComponent {
     const { nume, idObiectiv } = this.form.getRawValue();
     const payload = { idObiectiv: idObiectiv!, nume: nume! };
 
-    const request =
-      mode === 'update'
-        ? this.lucrareService.update(this.selectedLucrareId()!, payload)
-        : this.lucrareService.create(payload);
-
-    request.subscribe({
+    this.lucrareService.update(this.selectedLucrareId()!, payload).subscribe({
       next: () => {
         this.isSubmitting.set(false);
-        this.successMessage.set(mode === 'update' ? 'Lucrarea a fost actualizată.' : 'Lucrarea a fost salvată.');
-        if (mode === 'create') {
-          this.form.reset();
-        }
+        this.successMessage.set('Lucrarea a fost actualizată.');
       },
       error: () => {
         this.isSubmitting.set(false);
-        this.errorMessage.set(
-          mode === 'update' ? 'Lucrarea nu a putut fi actualizată.' : 'Lucrarea nu a putut fi salvată.',
-        );
+        this.errorMessage.set('Lucrarea nu a putut fi actualizată.');
       },
+    });
+  }
+
+  private createLucrari(): void {
+    const idObiectiv = this.form.get('idObiectiv')!.value;
+    if (idObiectiv == null) {
+      this.errorMessage.set(getRequiredFieldsMessage(this.form, { idObiectiv: 'Obiectiv' }));
+      return;
+    }
+
+    const invalidIndex = this.createRows.controls.findIndex((group) => group.invalid);
+    if (invalidIndex !== -1) {
+      this.createRows.markAllAsTouched();
+      const message = getRequiredFieldsMessage(this.createRows.at(invalidIndex), { nume: 'Nume' });
+      this.errorMessage.set(`Linia ${invalidIndex + 1}: ${message}`);
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.isSubmitting.set(true);
+
+    const groups = [...this.createRows.controls];
+    const requests = groups.map((group) =>
+      this.lucrareService.create({ idObiectiv, nume: group.getRawValue().nume }).pipe(
+        map(() => true),
+        catchError(() => of(false)),
+      ),
+    );
+
+    forkJoin(requests).subscribe((results) => {
+      this.isSubmitting.set(false);
+      const failed = groups.filter((_, i) => !results[i]);
+
+      if (failed.length === 0) {
+        this.successMessage.set(groups.length === 1 ? 'Lucrarea a fost salvată.' : 'Lucrările au fost salvate.');
+        this.resetCreateRows();
+        return;
+      }
+
+      // Keep only the rows that failed, so retrying doesn't duplicate the ones already saved.
+      this.createRows.clear();
+      failed.forEach((group) => this.createRows.push(group));
+      this.errorMessage.set(`${failed.length} din ${groups.length} lucrări nu au putut fi salvate.`);
     });
   }
 
@@ -225,12 +286,39 @@ export class LucrareComponent {
     });
   }
 
-  private deleteLucrare(): void {
+  private loadLucrariCuComenzi(idObiectiv: number | null): void {
+    const requestId = ++this.lucrariCuComenziRequestId;
+    this.lucrariCuComenziIds.set(new Set());
+    if (idObiectiv == null) {
+      this.isLoadingLucrariCuComenzi.set(false);
+      return;
+    }
+
+    this.isLoadingLucrariCuComenzi.set(true);
+    this.lucrareService.getCuComenzi(idObiectiv).subscribe({
+      next: (list) => {
+        if (requestId !== this.lucrariCuComenziRequestId) return;
+        this.lucrariCuComenziIds.set(new Set(list.map((l) => l.id)));
+        this.isLoadingLucrariCuComenzi.set(false);
+      },
+      error: () => {
+        // Leave isLoading set so the × stays hidden -- without the list we can't tell
+        // which lucrari are safe to delete.
+        if (requestId !== this.lucrariCuComenziRequestId) return;
+        this.errorMessage.set('Lucrările cu comenzi nu au putut fi încărcate.');
+      },
+    });
+  }
+
+  deleteLucrare(): void {
     const id = this.selectedLucrareId();
     if (!id) {
       this.errorMessage.set('Selectează o lucrare.');
       return;
     }
+
+    const nume = this.lucrari().find((l) => l.id === id)?.nume ?? '';
+    if (!window.confirm(`Ștergi lucrarea „${nume}”?`)) return;
 
     this.errorMessage.set(null);
     this.successMessage.set(null);
@@ -242,11 +330,14 @@ export class LucrareComponent {
         this.successMessage.set('Lucrarea a fost ștearsă.');
         this.lucrari.set(this.lucrari().filter((l) => l.id !== id));
         this.selectedLucrareId.set(null);
-        this.form.reset();
+        this.form.patchValue({ nume: '' }, { emitEvent: false });
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
-        this.errorMessage.set('Lucrarea nu a putut fi ștearsă.');
+        // 409 carries the reason as plain text (e.g. a comanda was added meanwhile).
+        this.errorMessage.set(
+          err.status === 409 && typeof err.error === 'string' ? err.error : 'Lucrarea nu a putut fi ștearsă.',
+        );
       },
     });
   }

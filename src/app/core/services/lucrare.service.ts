@@ -16,6 +16,11 @@ export class LucrareService {
     return this.http.get<Lucrare[]>(`${this.config.apiUrl}/lucrari`);
   }
 
+  // GET /api/lucrari/cu-comenzi?idObiectiv= -- the obiectiv's lucrari that have at least one comanda.
+  getCuComenzi(idObiectiv: number): Observable<Lucrare[]> {
+    return this.http.get<Lucrare[]>(`${this.config.apiUrl}/lucrari/cu-comenzi`, { params: { idObiectiv } });
+  }
+
   // POST /api/lucrari -- creates a new lucrare for the given objective.
   create(lucrare: { idObiectiv: number; nume: string }): Observable<Lucrare> {
     return this.http.post<Lucrare>(`${this.config.apiUrl}/lucrari`, lucrare);

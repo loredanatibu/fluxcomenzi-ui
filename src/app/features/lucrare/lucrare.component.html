@@ -21,14 +21,6 @@
       >
         Modifică Lucrare
       </button>
-      <button
-        type="button"
-        class="lucrare__menu-item"
-        [class.lucrare__menu-item--active]="mode() === 'delete'"
-        (click)="selectMode('delete')"
-      >
-        Șterge Lucrare
-      </button>
     </nav>
 
     <form class="lucrare__form" [formGroup]="form" (ngSubmit)="submit()">
@@ -38,36 +30,86 @@
           formControlName="idObiectiv"
           [options]="obiectivOptions()"
           [loading]="isLoadingObiective()"
-          [selectOnly]="mode() !== 'create'"
+          [selectOnly]="mode() === 'update'"
           placeholder="Alege un obiectiv"
         ></app-combo-select>
       </label>
 
-      <label class="lucrare__field">
+      <ng-container *ngIf="mode() === 'create'">
+        <div class="lucrare__table-scroll">
+          <table class="lucrare__table">
+            <thead>
+              <tr>
+                <th>Nume lucrare<span class="required-marker">*</span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let group of createRows.controls; let i = index" [formGroup]="group">
+                <td><input type="text" formControlName="nume" autocomplete="off" maxlength="255" /></td>
+                <td>
+                  <button
+                    type="button"
+                    class="lucrare__row-remove"
+                    [disabled]="createRows.length === 1 || isSubmitting()"
+                    (click)="removeCreateRow(i)"
+                    title="Elimină linia"
+                    aria-label="Elimină linia"
+                  >
+                    ×
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          type="button"
+          class="lucrare__add-row"
+          [disabled]="!form.get('idObiectiv')!.value || isSubmitting()"
+          (click)="addCreateRow()"
+        >
+          + Adaugă linie
+        </button>
+      </ng-container>
+
+      <label *ngIf="mode() === 'update'" class="lucrare__field">
         <span>Nume<span class="required-marker">*</span></span>
-        <input *ngIf="mode() === 'create'" type="text" formControlName="nume" autocomplete="off" />
-        <app-combo-select
-          *ngIf="mode() !== 'create'"
-          [options]="lucrareOptions()"
-          [loading]="isLoadingLucrari()"
-          [value]="selectedLucrareId()"
-          [disabled]="!selectedIdObiectiv()"
-          [selectOnly]="mode() === 'delete'"
-          [freeText]="mode() === 'update'"
-          placeholder="Selectează lucrarea"
-          (valueChange)="onLucrareSelected($event)"
-          (queryChange)="onLucrareNameEdited($event)"
-        ></app-combo-select>
+        <div class="lucrare__select-row">
+          <app-combo-select
+            [options]="lucrareOptions()"
+            [loading]="isLoadingLucrari()"
+            [value]="selectedLucrareId()"
+            [disabled]="!selectedIdObiectiv()"
+            [freeText]="true"
+            placeholder="Selectează lucrarea"
+            (valueChange)="onLucrareSelected($event)"
+            (queryChange)="onLucrareNameEdited($event)"
+          ></app-combo-select>
+
+          <!-- Only a lucrare without comenzi can be deleted (the backend refuses otherwise). -->
+          <button
+            *ngIf="canDeleteSelected()"
+            type="button"
+            class="lucrare__delete"
+            [disabled]="isSubmitting()"
+            (click)="deleteLucrare()"
+            title="Șterge lucrarea"
+            aria-label="Șterge lucrarea"
+          >
+            ×
+          </button>
+        </div>
       </label>
 
       <div class="lucrare__actions">
         <button
           class="lucrare__submit"
-          [class.lucrare__submit--danger]="mode() === 'delete'"
           type="submit"
-          [disabled]="isSubmitting() || (mode() === 'create' ? formInvalid() : !selectedLucrareId())"
+          [disabled]="isSubmitting() || (mode() === 'create' ? !createValid() : !selectedLucrareId())"
         >
-          {{ submitLabel() }}
+          {{ isSubmitting() ? 'Se salvează...' : 'Salvează' }}
         </button>
 
         <p *ngIf="errorMessage()" class="lucrare__error">{{ errorMessage() }}</p>

@@ -52,6 +52,7 @@
   min-width: 0;
   height: 100%;
   padding: 1.5rem;
+  overflow-y: auto;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius);
@@ -87,6 +88,107 @@
   }
 }
 
+.lucrare__table-scroll {
+  overflow-x: auto;
+  min-width: 0;
+  max-width: 520px;
+}
+
+// Same look as the comenzi entry table: bordered inputs, one row per new lucrare.
+.lucrare__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  table-layout: fixed;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.4rem 0.3rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  th {
+    color: var(--color-text-muted);
+    font-weight: 600;
+    background: var(--color-surface);
+  }
+
+  th:last-child,
+  td:last-child {
+    width: 3rem;
+    text-align: center;
+  }
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.3rem 0.35rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    color: var(--color-text);
+    background: var(--color-bg);
+
+    &:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      background: var(--color-surface);
+    }
+
+    &:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    &.ng-invalid.ng-touched {
+      border-color: var(--color-danger);
+    }
+  }
+}
+
+.lucrare__row-remove {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.lucrare__add-row {
+  align-self: flex-start;
+  padding: 0.45rem 0.9rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
 .lucrare__actions {
   display: flex;
   align-items: center;
@@ -113,9 +215,38 @@
   }
 }
 
-.lucrare__submit--danger {
-  background: var(--color-danger);
-  color: #fff;
+.lucrare__select-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  app-combo-select {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.lucrare__delete {
+  flex-shrink: 0;
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
 }
 
 .lucrare__error {
