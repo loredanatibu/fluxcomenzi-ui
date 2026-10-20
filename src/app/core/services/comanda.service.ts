@@ -12,7 +12,6 @@ export interface ComandaPayload {
   numeFurnizor: string;
   emailFurnizor: string;
   termenLivrare: string;
-  comandaTrimisa: boolean;
   comandaReceptionata: number;
   observatii: string;
 }

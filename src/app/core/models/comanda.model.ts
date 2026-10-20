@@ -9,7 +9,6 @@ export interface Comanda {
   numeFurnizor: string;
   emailFurnizor: string;
   termenLivrare: string;
-  comandaTrimisa: boolean;
   comandaReceptionata: number;
   observatii: string;
   createdBy: string;

@@ -12,19 +12,7 @@ import { DateInputComponent } from '../../shared/date-input/date-input.component
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
-// Single-comanda fields of the main form. They only ever display the comanda picked in
-// "Șterge Comandă" -- creation goes through createRows -- so they stay disabled throughout.
-const DETAIL_FIELDS = [
-  'numeMaterial',
-  'cantitate',
-  'unitateMasura',
-  'numeFurnizor',
-  'emailFurnizor',
-  'termenLivrare',
-  'comandaTrimisa',
-] as const;
-
-type ComandaMode = 'create' | 'receptie' | 'update' | 'delete';
+type ComandaMode = 'create' | 'receptie' | 'update';
 
 const REQUIRED_ROW_LABELS: Record<string, string> = {
   numeMaterial: 'Nume material',
@@ -52,7 +40,6 @@ export class ComandaComponent {
 
   readonly comenzi = signal<Comanda[]>([]);
   readonly isLoadingComenzi = signal(false);
-  readonly selectedComandaId = signal<number | null>(null);
 
   // Update mode lists comenzi for the chosen lucrare, editable directly in the grid.
   readonly selectedLucrareId = signal<number | null>(null);
@@ -71,31 +58,19 @@ export class ComandaComponent {
   // Update and Recepție share the grid: same row groups, different editable columns.
   // Fields a mode doesn't show stay in the group untouched, so saving sends them back as-is.
   readonly isGridMode = computed(() => this.mode() === 'update' || this.mode() === 'receptie');
-  private gridRows: Comanda[] = [];
+  gridRows: Comanda[] = [];
 
   // Create mode: one FormGroup per new comanda, all saved under the selected lucrare.
   // Disabled until a Lucrare is picked; "Adaugă linie" appends another empty row.
   readonly createRows = new FormArray<FormGroup>([this.newCreateRow()]);
 
-  // Create & update: Obiectiv is picked first (from /obiective/cu-lucrari), which then
-  // scopes which lucrari are selectable (in create, before anything else becomes editable;
-  // in update, before the comenzi grid for the chosen lucrare is shown).
+  // Every mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then scopes
+  // which lucrari are selectable (in create, before the rows become editable; in update
+  // and recepție, before the comenzi grid for the chosen lucrare is shown).
   readonly obiectiveCuLucrari = signal<ObiectivCuLucrari[]>([]);
   readonly isLoadingObiective = signal(false);
   readonly selectedIdObiectiv = signal<number | null>(null);
 
-  readonly submitLabel = computed(() => {
-    if (this.isSubmitting()) return 'Se salvează...';
-    return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
-  });
-
-  readonly comandaOptions = computed<ComboOption[]>(() => {
-    const idLucrare = this.selectedLucrareId();
-    if (idLucrare == null) return [];
-    return this.comenzi()
-      .filter((c) => c.idLucrare === idLucrare)
-      .map((c) => ({ value: c.id, label: c.numeMaterial }));
-  });
   readonly obiectivOptions = computed<ComboOption[]>(() =>
     this.obiectiveCuLucrari().map((o) => ({ value: o.obiectiv.idObiectiv, label: o.obiectiv.nume })),
   );
@@ -107,14 +82,7 @@ export class ComandaComponent {
   });
 
   readonly form = this.fb.group({
-    numeMaterial: ['', Validators.required],
     idLucrare: [null as number | null, Validators.required],
-    cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
-    unitateMasura: ['', Validators.required],
-    numeFurnizor: ['', Validators.required],
-    emailFurnizor: ['', [Validators.required, Validators.email]],
-    termenLivrare: ['', Validators.required],
-    comandaTrimisa: [false],
   });
 
   // Drives the Salvează button in create mode: disabled until a Lucrare is picked and all
@@ -131,7 +99,6 @@ export class ComandaComponent {
     // Creează Comandă starts with nothing selected: Obiectiv must be chosen first,
     // which unlocks Lucrare, which in turn unlocks the rows.
     this.form.get('idLucrare')?.disable();
-    this.setDetailFieldsDisabled();
     this.createRows.disable();
 
     if (this.authService.isAuthenticated()) {
@@ -159,22 +126,34 @@ export class ComandaComponent {
   }
 
   private buildGridForm(rows: Comanda[]): void {
+    // Unsaved edits survive a rebuild (e.g. after deleting another row) as long as their
+    // comanda is still listed; everything else is rebuilt from the server data.
+    const dirtyById = new Map<number, FormGroup>();
+    this.gridForm.controls.forEach((group, i) => {
+      if (group.dirty && this.gridRows[i]) dirtyById.set(this.gridRows[i].id, group);
+    });
+
     this.gridRows = rows;
     this.gridForm.clear();
     for (const c of rows) {
       this.gridForm.push(
-        this.fb.group({
-          numeMaterial: [c.numeMaterial],
-          cantitate: [c.cantitate],
-          unitateMasura: [c.unitateMasura],
-          numeFurnizor: [c.numeFurnizor],
-          emailFurnizor: [c.emailFurnizor],
-          termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
-          comandaTrimisa: [c.comandaTrimisa],
-          comandaReceptionata: [c.comandaReceptionata, [Validators.required, Validators.min(0)]],
-          observatii: [c.observatii],
-        }),
+        dirtyById.get(c.id) ??
+          this.fb.group({
+            numeMaterial: [c.numeMaterial],
+            cantitate: [c.cantitate],
+            unitateMasura: [c.unitateMasura],
+            numeFurnizor: [c.numeFurnizor],
+            emailFurnizor: [c.emailFurnizor],
+            termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
+            comandaReceptionata: [c.comandaReceptionata, [Validators.required, Validators.min(0)]],
+            observatii: [c.observatii],
+          }),
       );
+    }
+
+    // clear() doesn't reset the array's own dirty flag, so recompute it from the rows.
+    if (!this.gridForm.controls.some((group) => group.dirty)) {
+      this.gridForm.markAsPristine();
     }
   }
 
@@ -220,7 +199,6 @@ export class ComandaComponent {
           numeFurnizor: v.numeFurnizor,
           emailFurnizor: v.emailFurnizor,
           termenLivrare: v.termenLivrare,
-          comandaTrimisa: v.comandaTrimisa,
           comandaReceptionata: Number(v.comandaReceptionata),
           observatii: v.observatii ?? '',
         };
@@ -237,11 +215,34 @@ export class ComandaComponent {
       next: () => {
         this.isSubmitting.set(false);
         this.successMessage.set('Comenzile au fost actualizate.');
+        // Saved: the reload below should replace these rows, not keep them as unsaved edits.
+        this.gridForm.markAsPristine();
         this.loadComenzi();
       },
       error: () => {
         this.isSubmitting.set(false);
         this.errorMessage.set('Comenzile nu au putut fi actualizate.');
+      },
+    });
+  }
+
+  deleteGridRow(index: number): void {
+    const comanda = this.gridRows[index];
+    if (!comanda || !window.confirm(`Ștergi comanda „${comanda.numeMaterial}”?`)) return;
+
+    this.errorMessage.set(null);
+    this.successMessage.set(null);
+    this.isSubmitting.set(true);
+
+    this.comandaService.delete(comanda.id).subscribe({
+      next: () => {
+        this.isSubmitting.set(false);
+        this.successMessage.set('Comanda a fost ștearsă.');
+        this.comenzi.set(this.comenzi().filter((c) => c.id !== comanda.id));
+      },
+      error: () => {
+        this.isSubmitting.set(false);
+        this.errorMessage.set('Comanda nu a putut fi ștearsă.');
       },
     });
   }
@@ -265,7 +266,6 @@ export class ComandaComponent {
     this.mode.set(mode);
     this.errorMessage.set(null);
     this.successMessage.set(null);
-    this.selectedComandaId.set(null);
     this.selectedLucrareId.set(null);
     this.selectedIdObiectiv.set(null);
     this.form.reset();
@@ -273,47 +273,13 @@ export class ComandaComponent {
     this.resetCreateRows();
     this.createRows.disable();
 
-    if (mode === 'create') {
-      this.loadObiectiveCuLucrari();
-      return;
-    }
-
-    // Obiectiv is picked first (select-only in delete), which scopes Lucrare (also
-    // select-only in delete); picking Lucrare then drives the comenzi below -- the
-    // editable datagrid in update mode, the Nume material picker in delete mode.
     this.loadObiectiveCuLucrari();
-    this.loadComenzi();
-  }
-
-  onComandaSelected(rawId: number | string | null): void {
-    const id = rawId == null ? null : Number(rawId);
-    this.selectedComandaId.set(id);
-
-    const comanda = id ? this.comenzi().find((c) => c.id === id) : undefined;
-    this.form.patchValue(
-      {
-        numeMaterial: comanda?.numeMaterial ?? '',
-        idLucrare: comanda?.idLucrare ?? null,
-        cantitate: comanda?.cantitate ?? null,
-        unitateMasura: comanda?.unitateMasura ?? '',
-        numeFurnizor: comanda?.numeFurnizor ?? '',
-        emailFurnizor: comanda?.emailFurnizor ?? '',
-        termenLivrare: toDateTimeInputValue(comanda?.termenLivrare),
-        comandaTrimisa: comanda?.comandaTrimisa ?? false,
-      },
-      { emitEvent: false },
-    );
+    if (mode !== 'create') {
+      this.loadComenzi();
+    }
   }
 
   submit(): void {
-    if (this.mode() === 'delete') {
-      this.deleteComanda();
-    } else {
-      this.createComenzi();
-    }
-  }
-
-  private createComenzi(): void {
     const idLucrare = this.form.get('idLucrare')!.value;
     if (idLucrare == null) {
       this.errorMessage.set(getRequiredFieldsMessage(this.form, { idLucrare: 'Lucrare' }));
@@ -343,7 +309,6 @@ export class ComandaComponent {
         numeFurnizor: v.numeFurnizor,
         emailFurnizor: v.emailFurnizor,
         termenLivrare: v.termenLivrare,
-        comandaTrimisa: false,
         comandaReceptionata: 0,
         observatii: '',
       };
@@ -385,12 +350,6 @@ export class ComandaComponent {
     });
   }
 
-  private setDetailFieldsDisabled(): void {
-    for (const name of DETAIL_FIELDS) {
-      this.form.get(name)?.disable();
-    }
-  }
-
   private loadComenzi(): void {
     this.isLoadingComenzi.set(true);
     this.comandaService.getAll().subscribe({
@@ -401,32 +360,6 @@ export class ComandaComponent {
       error: () => {
         this.isLoadingComenzi.set(false);
         this.errorMessage.set('Comenzile nu au putut fi încărcate.');
-      },
-    });
-  }
-
-  private deleteComanda(): void {
-    const id = this.selectedComandaId();
-    if (!id) {
-      this.errorMessage.set('Selectează o comandă.');
-      return;
-    }
-
-    this.errorMessage.set(null);
-    this.successMessage.set(null);
-    this.isSubmitting.set(true);
-
-    this.comandaService.delete(id).subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.successMessage.set('Comanda a fost ștearsă.');
-        this.comenzi.set(this.comenzi().filter((c) => c.id !== id));
-        this.selectedComandaId.set(null);
-        this.form.reset();
-      },
-      error: () => {
-        this.isSubmitting.set(false);
-        this.errorMessage.set('Comanda nu a putut fi ștearsă.');
       },
     });
   }

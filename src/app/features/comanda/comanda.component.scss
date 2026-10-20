@@ -63,10 +63,6 @@
   gap: 1rem;
 }
 
-.comanda__row--align-end {
-  align-items: flex-end;
-}
-
 .comanda__field {
   display: flex;
   flex-direction: column;
@@ -122,25 +118,6 @@
   max-width: 240px;
 }
 
-.comanda__checkbox-group {
-  display: flex;
-  gap: 1rem;
-  padding: 0.55rem 0;
-}
-
-.comanda__checkbox {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  color: var(--color-text);
-  font-size: 0.85rem;
-  cursor: pointer;
-
-  input {
-    width: auto;
-  }
-}
-
 .comanda__actions {
   display: flex;
   align-items: center;
@@ -165,11 +142,6 @@
   &:hover:not(:disabled) {
     filter: brightness(1.05);
   }
-}
-
-.comanda__submit--danger {
-  background: var(--color-danger);
-  color: #fff;
 }
 
 .comanda__grid {
@@ -248,15 +220,17 @@
   td:nth-child(7) {
     width: 10%;
   }
+  // Delete button (update grid only -- recepție has no 8th column).
+  th:nth-child(8),
+  td:nth-child(8) {
+    width: 3rem;
+    text-align: center;
+  }
 
   // At rest, editable cells read as plain text: no borders, no fill, no column
   // striping -- the grid looks like a table first, not a wall of input boxes.
   tbody tr:hover td {
     background: var(--color-bg);
-  }
-
-  .comanda__table-checkbox {
-    text-align: center;
   }
 
   input,
@@ -301,7 +275,7 @@
 
 // Create & Recepție: inputs keep a visible border at rest -- empty fields to fill in
 // (create), or the only editable cells among read-only order data (recepție) --
-// unlike the update grid, where every cell is editable and reads as plain text.
+// unlike the update grid, where the editable cells read as plain text.
 .comanda__table--entry,
 .comanda__table--receptie {
   tbody tr:hover td {

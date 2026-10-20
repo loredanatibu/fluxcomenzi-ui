@@ -39,7 +39,6 @@
                   <th>Furnizor</th>
                   <th>Email furnizor</th>
                   <th>Termen livrare</th>
-                  <th title="Trimisă">T</th>
                   <th title="Recepționată">R</th>
                   <th>Observații</th>
                 </tr>
@@ -54,7 +53,6 @@
                   <td [title]="row.comanda.numeFurnizor">{{ row.comanda.numeFurnizor }}</td>
                   <td [title]="row.comanda.emailFurnizor">{{ row.comanda.emailFurnizor }}</td>
                   <td>{{ row.comanda.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
-                  <td>{{ row.comanda.comandaTrimisa ? 'Da' : 'Nu' }}</td>
                   <td>{{ row.comanda.comandaReceptionata }}</td>
                   <td [title]="row.comanda.observatii">{{ row.comanda.observatii }}</td>
                 </tr>

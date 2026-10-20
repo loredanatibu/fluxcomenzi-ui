@@ -29,14 +29,6 @@
       >
         Modifică Comandă
       </button>
-      <button
-        type="button"
-        class="comanda__menu-item"
-        [class.comanda__menu-item--active]="mode() === 'delete'"
-        (click)="selectMode('delete')"
-      >
-        Șterge Comandă
-      </button>
     </nav>
 
     <form class="comanda__form" [formGroup]="form" (ngSubmit)="submit()">
@@ -46,7 +38,6 @@
           <app-combo-select
             [options]="obiectivOptions()"
             [loading]="isLoadingObiective()"
-            [selectOnly]="mode() === 'delete'"
             [value]="selectedIdObiectiv()"
             placeholder="Alege un obiectiv"
             (valueChange)="onObiectivSelected($event)"
@@ -59,7 +50,6 @@
             formControlName="idLucrare"
             [options]="lucrareOptions()"
             [loading]="isLoadingObiective()"
-            [selectOnly]="mode() === 'delete'"
             placeholder="Alege o lucrare"
           ></app-combo-select>
         </label>
@@ -93,7 +83,8 @@
                     class="comanda__row-remove"
                     [disabled]="createRows.length === 1 || isSubmitting()"
                     (click)="removeCreateRow(i)"
-                    aria-label="Șterge linia"
+                    title="Elimină linia"
+                    aria-label="Elimină linia"
                   >
                     ×
                   </button>
@@ -113,70 +104,14 @@
         </button>
       </ng-container>
 
-      <label class="comanda__field" *ngIf="mode() === 'delete'">
-        <span>Nume material<span class="required-marker">*</span></span>
-        <app-combo-select
-          [options]="comandaOptions()"
-          [loading]="isLoadingComenzi()"
-          [disabled]="!selectedLucrareId()"
-          [selectOnly]="true"
-          placeholder="Selectează comanda"
-          (valueChange)="onComandaSelected($event)"
-        ></app-combo-select>
-      </label>
-
-      <ng-container *ngIf="mode() === 'delete'">
-        <div class="comanda__row">
-          <label class="comanda__field comanda__field--sm">
-            <span>Cantitate<span class="required-marker">*</span></span>
-            <input type="number" formControlName="cantitate" step="0.001" min="0" />
-          </label>
-
-          <label class="comanda__field comanda__field--sm">
-            <span>Unitate măsură<span class="required-marker">*</span></span>
-            <input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" />
-          </label>
-        </div>
-
-        <div class="comanda__row">
-          <label class="comanda__field comanda__field--sm">
-            <span>Nume furnizor<span class="required-marker">*</span></span>
-            <input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" />
-          </label>
-
-          <label class="comanda__field comanda__field--sm">
-            <span>Email furnizor<span class="required-marker">*</span></span>
-            <input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" />
-          </label>
-        </div>
-
-        <div class="comanda__row comanda__row--align-end">
-          <label class="comanda__field comanda__field--date">
-            <span>Termen livrare<span class="required-marker">*</span></span>
-            <app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input>
-          </label>
-
-          <div class="comanda__field comanda__field--sm">
-            <span>Comandă</span>
-            <div class="comanda__checkbox-group">
-              <label class="comanda__checkbox">
-                <input type="checkbox" formControlName="comandaTrimisa" />
-                <span>Trimis</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </ng-container>
-
       <div class="comanda__actions">
         <button
           *ngIf="!isGridMode()"
           class="comanda__submit"
-          [class.comanda__submit--danger]="mode() === 'delete'"
           type="submit"
-          [disabled]="isSubmitting() || (mode() === 'create' ? !formValid() : !selectedComandaId())"
+          [disabled]="isSubmitting() || !formValid()"
         >
-          {{ submitLabel() }}
+          {{ isSubmitting() ? 'Se salvează...' : 'Salvează' }}
         </button>
 
         <p *ngIf="errorMessage()" class="comanda__error">{{ errorMessage() }}</p>
@@ -214,18 +149,32 @@
                     <th>Furnizor</th>
                     <th>Email furnizor</th>
                     <th>Termen livrare</th>
-                    <th>Trimisă</th>
+                    <th>Recepționat</th>
+                    <th></th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr *ngFor="let group of gridForm.controls" [formGroup]="group">
+                  <tr *ngFor="let group of gridForm.controls; let i = index" [formGroup]="group">
                     <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
                     <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
                     <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
                     <td><input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" /></td>
                     <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
                     <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
-                    <td class="comanda__table-checkbox"><input type="checkbox" formControlName="comandaTrimisa" /></td>
+                    <!-- Read-only here: the received quantity is only edited in Recepție Comandă. -->
+                    <td>{{ gridRows[i].comandaReceptionata }}</td>
+                    <td>
+                      <button
+                        type="button"
+                        class="comanda__row-remove"
+                        [disabled]="isSubmitting()"
+                        (click)="deleteGridRow(i)"
+                        title="Șterge comanda"
+                        aria-label="Șterge comanda"
+                      >
+                        ×
+                      </button>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -245,7 +194,7 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let group of gridForm.controls; let i = index" [formGroup]="group">
-                    <ng-container *ngIf="filteredComenzi()[i] as c">
+                    <ng-container *ngIf="gridRows[i] as c">
                       <td [title]="c.numeMaterial">{{ c.numeMaterial }}</td>
                       <td>{{ c.cantitate }}</td>
                       <td>{{ c.unitateMasura }}</td>

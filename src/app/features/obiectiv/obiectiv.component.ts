@@ -1,8 +1,9 @@
 import { Component, computed, inject, signal } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { merge } from 'rxjs';
+import { forkJoin, merge } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { DateRangeService } from '../../core/services/date-range.service';
@@ -11,7 +12,7 @@ import { DateInputComponent } from '../../shared/date-input/date-input.component
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
-type ObiectivMode = 'create' | 'update' | 'delete';
+type ObiectivMode = 'create' | 'update';
 
 const REQUIRED_FIELD_LABELS: Record<string, string> = {
   nume: 'Nume',
@@ -41,9 +42,12 @@ export class ObiectivComponent {
   readonly selectedObiectivId = signal<number | null>(null);
   private obiectiveRequestId = 0;
 
-  readonly submitLabel = computed(() => {
-    if (this.isSubmitting()) return 'Se salvează...';
-    return this.mode() === 'delete' ? 'Șterge' : 'Salvează';
+  // Ids of obiective that still have lucrari -- those can't be deleted, so the × is
+  // only offered for an obiectiv outside this set.
+  private readonly obiectiveCuLucrariIds = signal<ReadonlySet<number>>(new Set());
+  readonly canDeleteSelected = computed(() => {
+    const id = this.selectedObiectivId();
+    return id != null && !this.obiectiveCuLucrariIds().has(id);
   });
 
   readonly obiectivOptions = computed<ComboOption[]>(() =>
@@ -110,22 +114,16 @@ export class ObiectivComponent {
       return;
     }
 
-    // Nume/alias are only ever chosen/displayed, never typed, in update & delete mode.
+    // Nume/alias are only ever chosen/displayed, never typed, in update mode.
     nume.disable();
     alias.disable();
     nume.clearValidators();
     alias.clearValidators();
+    termenExecutie.enable();
+    dataIncepere.enable();
 
-    if (mode === 'delete') {
-      termenExecutie.disable();
-      dataIncepere.disable();
-    } else {
-      termenExecutie.enable();
-      dataIncepere.enable();
-    }
-
-    // "Nume" (the objective picked above) is the only required field in update/delete
-    // mode -- termen execuție and data începere stay optional even when editable.
+    // "Nume" (the objective picked above) is the only required field in update mode --
+    // termen execuție and data începere stay optional even though editable.
     termenExecutie.clearValidators();
     dataIncepere.clearValidators();
     [nume, alias, termenExecutie, dataIncepere].forEach((c) => c.updateValueAndValidity({ emitEvent: false }));
@@ -152,11 +150,6 @@ export class ObiectivComponent {
 
   submit(): void {
     const mode = this.mode();
-
-    if (mode === 'delete') {
-      this.deleteObiectiv();
-      return;
-    }
 
     if (mode === 'update' && !this.selectedObiectivId()) {
       this.errorMessage.set('Selectează un obiectiv.');
@@ -205,10 +198,11 @@ export class ObiectivComponent {
   private loadObiective(): void {
     const requestId = ++this.obiectiveRequestId;
     this.isLoadingObiective.set(true);
-    this.objectiveService.getAll().subscribe({
-      next: (list) => {
+    forkJoin([this.objectiveService.getAll(), this.objectiveService.getAllCuLucrari()]).subscribe({
+      next: ([list, cuLucrari]) => {
         if (requestId !== this.obiectiveRequestId) return;
         this.obiective.set(list);
+        this.obiectiveCuLucrariIds.set(new Set(cuLucrari.map((o) => o.obiectiv.idObiectiv)));
         this.isLoadingObiective.set(false);
         this.errorMessage.set(null);
       },
@@ -220,12 +214,15 @@ export class ObiectivComponent {
     });
   }
 
-  private deleteObiectiv(): void {
+  deleteObiectiv(): void {
     const id = this.selectedObiectivId();
     if (!id) {
       this.errorMessage.set('Selectează un obiectiv.');
       return;
     }
+
+    const nume = this.obiective().find((o) => o.id === id)?.nume ?? '';
+    if (!window.confirm(`Ștergi obiectivul „${nume}”?`)) return;
 
     this.errorMessage.set(null);
     this.successMessage.set(null);
@@ -239,9 +236,12 @@ export class ObiectivComponent {
         this.selectedObiectivId.set(null);
         this.form.reset();
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
-        this.errorMessage.set('Obiectivul nu a putut fi șters.');
+        // 409 carries the reason as plain text (e.g. the obiectiv still has lucrari).
+        this.errorMessage.set(
+          err.status === 409 && typeof err.error === 'string' ? err.error : 'Obiectivul nu a putut fi șters.',
+        );
       },
     });
   }
