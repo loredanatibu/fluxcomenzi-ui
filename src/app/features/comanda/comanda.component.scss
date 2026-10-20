@@ -118,11 +118,26 @@
   max-width: 240px;
 }
 
+.comanda__field--obiectiv {
+  max-width: none;
+}
+
+// Alias combobox at the usual narrow width, with the obiectiv's nume underneath it.
+.comanda__obiectiv-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 260px;
+}
+
+// Indented by the combobox input's border + horizontal padding, so the nume starts
+// exactly where the selected alias text above it starts.
 .comanda__obiectiv-nume {
+  padding-left: calc(0.7rem + 1px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: var(--color-text-muted);
   opacity: 0.8;
 }
