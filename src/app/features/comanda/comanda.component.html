@@ -95,7 +95,6 @@
                   <th>Cantitate<span class="required-marker">*</span></th>
                   <th>U.M.<span class="required-marker">*</span></th>
                   <th>Furnizor<span class="required-marker">*</span></th>
-                  <th>Email furnizor<span class="required-marker">*</span></th>
                   <th>Termen livrare<span class="required-marker">*</span></th>
                   <th></th>
                 </tr>
@@ -111,10 +110,8 @@
                       [options]="furnizorOptions()"
                       [loading]="isLoadingFurnizori()"
                       placeholder="Alege furnizorul"
-                      (valueChange)="onFurnizorSelected(group, $event)"
                     ></app-combo-select>
                   </td>
-                  <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
                   <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
                   <td>
                     <button

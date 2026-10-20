@@ -22,7 +22,6 @@ const REQUIRED_ROW_LABELS: Record<string, string> = {
   cantitate: 'Cantitate',
   unitateMasura: 'Unitate măsură',
   numeFurnizor: 'Nume furnizor',
-  emailFurnizor: 'Email furnizor',
   termenLivrare: 'Termen livrare',
 };
 
@@ -238,18 +237,20 @@ export class ComandaComponent {
       cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
       unitateMasura: ['', Validators.required],
       numeFurnizor: [null as string | null, Validators.required],
-      emailFurnizor: ['', [Validators.required, Validators.email]],
       termenLivrare: ['', Validators.required],
     });
   }
 
-  // Picking a furnizor fills in its email when the row has none yet; it stays editable.
+  // Update grid: picking a different furnizor brings its email along (still editable).
   onFurnizorSelected(row: FormGroup, nume: number | string | null): void {
-    const email = this.furnizori.find((f) => f.nume === nume)?.email;
-    const emailControl = row.get('emailFurnizor')!;
-    if (email && !emailControl.value) {
-      emailControl.setValue(email);
+    const email = this.furnizorEmail(nume);
+    if (email) {
+      row.get('emailFurnizor')!.setValue(email);
     }
+  }
+
+  private furnizorEmail(nume: number | string | null): string | null {
+    return this.furnizori.find((f) => f.nume === nume)?.email ?? null;
   }
 
   private resetSolicitantGroups(): void {
@@ -384,7 +385,8 @@ export class ComandaComponent {
         cantitate: Number(v.cantitate),
         unitateMasura: v.unitateMasura,
         numeFurnizor: v.numeFurnizor,
-        emailFurnizor: v.emailFurnizor,
+        // No email field in create: it comes from the picked furnizor's record.
+        emailFurnizor: this.furnizorEmail(v.numeFurnizor) ?? '',
         termenLivrare: v.termenLivrare,
         comandaReceptionata: 0,
         observatii: '',
