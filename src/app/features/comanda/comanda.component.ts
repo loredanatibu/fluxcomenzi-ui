@@ -2,7 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, map, merge, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ComandaService, ComandaPayload } from '../../core/services/comanda.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
@@ -12,8 +12,9 @@ import { DateInputComponent } from '../../shared/date-input/date-input.component
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
 
-// Fields that stay disabled in "Creează Comandă" until a Lucrare is picked.
-const CREATE_STAGE_FIELDS = [
+// Single-comanda fields of the main form. They only ever display the comanda picked in
+// "Șterge Comandă" -- creation goes through createRows -- so they stay disabled throughout.
+const DETAIL_FIELDS = [
   'numeMaterial',
   'cantitate',
   'unitateMasura',
@@ -21,15 +22,12 @@ const CREATE_STAGE_FIELDS = [
   'emailFurnizor',
   'termenLivrare',
   'comandaTrimisa',
-  'comandaReceptionata',
-  'observatii',
 ] as const;
 
-type ComandaMode = 'create' | 'update' | 'delete';
+type ComandaMode = 'create' | 'receptie' | 'update' | 'delete';
 
-const REQUIRED_FIELD_LABELS: Record<string, string> = {
+const REQUIRED_ROW_LABELS: Record<string, string> = {
   numeMaterial: 'Nume material',
-  idLucrare: 'Lucrare',
   cantitate: 'Cantitate',
   unitateMasura: 'Unitate măsură',
   numeFurnizor: 'Nume furnizor',
@@ -70,7 +68,14 @@ export class ComandaComponent {
   // gridForm.dirty directly in the template -- Reactive Forms already tracks that
   // per control from user input, no extra bookkeeping needed.
   readonly gridForm = new FormArray<FormGroup>([]);
+  // Update and Recepție share the grid: same row groups, different editable columns.
+  // Fields a mode doesn't show stay in the group untouched, so saving sends them back as-is.
+  readonly isGridMode = computed(() => this.mode() === 'update' || this.mode() === 'receptie');
   private gridRows: Comanda[] = [];
+
+  // Create mode: one FormGroup per new comanda, all saved under the selected lucrare.
+  // Disabled until a Lucrare is picked; "Adaugă linie" appends another empty row.
+  readonly createRows = new FormArray<FormGroup>([this.newCreateRow()]);
 
   // Create & update: Obiectiv is picked first (from /obiective/cu-lucrari), which then
   // scopes which lucrari are selectable (in create, before anything else becomes editable;
@@ -110,15 +115,13 @@ export class ComandaComponent {
     emailFurnizor: ['', [Validators.required, Validators.email]],
     termenLivrare: ['', Validators.required],
     comandaTrimisa: [false],
-    comandaReceptionata: [false],
-    observatii: [''],
   });
 
-  // Drives the Salvează button in create mode: disabled until all required fields are
-  // filled. Uses `.valid` rather than `.invalid` because the create-stage fields start
-  // disabled (locked behind Obiectiv/Lucrare) -- an all-disabled group's status is
-  // 'DISABLED', which is neither valid nor invalid, so `.invalid` alone would miss it.
-  readonly formValid = signal(this.form.valid);
+  // Drives the Salvează button in create mode: disabled until a Lucrare is picked and all
+  // required fields of every row are filled. Uses `.valid` rather than `.invalid` because
+  // the rows start disabled (locked behind Obiectiv/Lucrare) -- an all-disabled array's
+  // status is 'DISABLED', which is neither valid nor invalid, so `.invalid` would miss it.
+  readonly formValid = signal(false);
 
   constructor(
     readonly authService: AuthService,
@@ -126,22 +129,29 @@ export class ComandaComponent {
     private readonly objectiveService: ObjectiveService,
   ) {
     // Creează Comandă starts with nothing selected: Obiectiv must be chosen first,
-    // which unlocks Lucrare, which in turn unlocks everything else.
+    // which unlocks Lucrare, which in turn unlocks the rows.
     this.form.get('idLucrare')?.disable();
-    this.setCreateStageFieldsEnabled(false);
+    this.setDetailFieldsDisabled();
+    this.createRows.disable();
 
     if (this.authService.isAuthenticated()) {
       this.loadObiectiveCuLucrari();
     }
 
-    this.form.statusChanges.pipe(takeUntilDestroyed()).subscribe(() => {
-      this.formValid.set(this.form.valid);
-    });
+    merge(this.form.statusChanges, this.createRows.statusChanges)
+      .pipe(takeUntilDestroyed())
+      .subscribe(() => {
+        this.formValid.set(this.form.get('idLucrare')!.valid && this.createRows.valid);
+      });
 
     this.form.get('idLucrare')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
       this.selectedLucrareId.set(value);
       if (this.mode() === 'create') {
-        this.setCreateStageFieldsEnabled(value != null);
+        if (value != null) {
+          this.createRows.enable();
+        } else {
+          this.createRows.disable();
+        }
       }
     });
 
@@ -161,11 +171,37 @@ export class ComandaComponent {
           emailFurnizor: [c.emailFurnizor],
           termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
           comandaTrimisa: [c.comandaTrimisa],
-          comandaReceptionata: [c.comandaReceptionata],
+          comandaReceptionata: [c.comandaReceptionata, [Validators.required, Validators.min(0)]],
           observatii: [c.observatii],
         }),
       );
     }
+  }
+
+  addCreateRow(): void {
+    this.createRows.push(this.newCreateRow());
+  }
+
+  removeCreateRow(index: number): void {
+    if (this.createRows.length > 1) {
+      this.createRows.removeAt(index);
+    }
+  }
+
+  private newCreateRow(): FormGroup {
+    return this.fb.group({
+      numeMaterial: ['', Validators.required],
+      cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
+      unitateMasura: ['', Validators.required],
+      numeFurnizor: ['', Validators.required],
+      emailFurnizor: ['', [Validators.required, Validators.email]],
+      termenLivrare: ['', Validators.required],
+    });
+  }
+
+  private resetCreateRows(): void {
+    this.createRows.clear();
+    this.createRows.push(this.newCreateRow());
   }
 
   saveGridChanges(): void {
@@ -185,7 +221,7 @@ export class ComandaComponent {
           emailFurnizor: v.emailFurnizor,
           termenLivrare: v.termenLivrare,
           comandaTrimisa: v.comandaTrimisa,
-          comandaReceptionata: v.comandaReceptionata,
+          comandaReceptionata: Number(v.comandaReceptionata),
           observatii: v.observatii ?? '',
         };
         return this.comandaService.update(row.id, payload);
@@ -233,28 +269,18 @@ export class ComandaComponent {
     this.selectedLucrareId.set(null);
     this.selectedIdObiectiv.set(null);
     this.form.reset();
+    this.form.get('idLucrare')?.disable();
+    this.resetCreateRows();
+    this.createRows.disable();
 
     if (mode === 'create') {
-      this.form.get('idLucrare')?.disable();
-      this.setCreateStageFieldsEnabled(false);
       this.loadObiectiveCuLucrari();
       return;
     }
 
-    // Nume material is only ever chosen/displayed, never typed, in update & delete mode.
     // Obiectiv is picked first (select-only in delete), which scopes Lucrare (also
     // select-only in delete); picking Lucrare then drives the comenzi below -- the
-    // read-only datagrid in update mode, the Nume material picker in delete mode.
-    this.form.get('numeMaterial')?.disable();
-    this.form.get('idLucrare')?.disable();
-    this.form.get('cantitate')?.disable();
-    this.form.get('unitateMasura')?.disable();
-    this.form.get('numeFurnizor')?.disable();
-    this.form.get('emailFurnizor')?.disable();
-    this.form.get('termenLivrare')?.disable();
-    this.form.get('comandaTrimisa')?.disable();
-    this.form.get('comandaReceptionata')?.disable();
-    this.form.get('observatii')?.disable();
+    // editable datagrid in update mode, the Nume material picker in delete mode.
     this.loadObiectiveCuLucrari();
     this.loadComenzi();
   }
@@ -274,28 +300,31 @@ export class ComandaComponent {
         emailFurnizor: comanda?.emailFurnizor ?? '',
         termenLivrare: toDateTimeInputValue(comanda?.termenLivrare),
         comandaTrimisa: comanda?.comandaTrimisa ?? false,
-        comandaReceptionata: comanda?.comandaReceptionata ?? false,
-        observatii: comanda?.observatii ?? '',
       },
       { emitEvent: false },
     );
   }
 
   submit(): void {
-    const mode = this.mode();
-
-    if (mode === 'delete') {
+    if (this.mode() === 'delete') {
       this.deleteComanda();
+    } else {
+      this.createComenzi();
+    }
+  }
+
+  private createComenzi(): void {
+    const idLucrare = this.form.get('idLucrare')!.value;
+    if (idLucrare == null) {
+      this.errorMessage.set(getRequiredFieldsMessage(this.form, { idLucrare: 'Lucrare' }));
       return;
     }
 
-    if (mode === 'update' && !this.selectedComandaId()) {
-      this.errorMessage.set('Selectează o comandă.');
-      return;
-    }
-
-    if (this.form.invalid) {
-      this.errorMessage.set(getRequiredFieldsMessage(this.form, REQUIRED_FIELD_LABELS));
+    const invalidIndex = this.createRows.controls.findIndex((group) => group.invalid);
+    if (invalidIndex !== -1) {
+      this.createRows.markAllAsTouched();
+      const message = getRequiredFieldsMessage(this.createRows.at(invalidIndex), REQUIRED_ROW_LABELS);
+      this.errorMessage.set(`Linia ${invalidIndex + 1}: ${message}`);
       return;
     }
 
@@ -303,51 +332,41 @@ export class ComandaComponent {
     this.successMessage.set(null);
     this.isSubmitting.set(true);
 
-    const {
-      numeMaterial,
-      idLucrare,
-      cantitate,
-      unitateMasura,
-      numeFurnizor,
-      emailFurnizor,
-      termenLivrare,
-      comandaTrimisa,
-      comandaReceptionata,
-      observatii,
-    } = this.form.getRawValue();
+    const groups = [...this.createRows.controls];
+    const requests = groups.map((group) => {
+      const v = group.getRawValue();
+      const payload: ComandaPayload = {
+        idLucrare,
+        numeMaterial: v.numeMaterial,
+        cantitate: Number(v.cantitate),
+        unitateMasura: v.unitateMasura,
+        numeFurnizor: v.numeFurnizor,
+        emailFurnizor: v.emailFurnizor,
+        termenLivrare: v.termenLivrare,
+        comandaTrimisa: false,
+        comandaReceptionata: 0,
+        observatii: '',
+      };
+      return this.comandaService.create(payload).pipe(
+        map(() => true),
+        catchError(() => of(false)),
+      );
+    });
 
-    const payload = {
-      idLucrare: idLucrare!,
-      numeMaterial: numeMaterial!,
-      cantitate: Number(cantitate),
-      unitateMasura: unitateMasura!,
-      numeFurnizor: numeFurnizor!,
-      emailFurnizor: emailFurnizor!,
-      termenLivrare: termenLivrare!,
-      comandaTrimisa: comandaTrimisa!,
-      comandaReceptionata: comandaReceptionata!,
-      observatii: observatii ?? '',
-    };
+    forkJoin(requests).subscribe((results) => {
+      this.isSubmitting.set(false);
+      const failed = groups.filter((_, i) => !results[i]);
 
-    const request =
-      mode === 'update'
-        ? this.comandaService.update(this.selectedComandaId()!, payload)
-        : this.comandaService.create(payload);
+      if (failed.length === 0) {
+        this.successMessage.set(groups.length === 1 ? 'Comanda a fost salvată.' : 'Comenzile au fost salvate.');
+        this.resetCreateRows();
+        return;
+      }
 
-    request.subscribe({
-      next: () => {
-        this.isSubmitting.set(false);
-        this.successMessage.set(mode === 'update' ? 'Comanda a fost actualizată.' : 'Comanda a fost salvată.');
-        if (mode === 'create') {
-          this.form.reset();
-        }
-      },
-      error: () => {
-        this.isSubmitting.set(false);
-        this.errorMessage.set(
-          mode === 'update' ? 'Comanda nu a putut fi actualizată.' : 'Comanda nu a putut fi salvată.',
-        );
-      },
+      // Keep only the rows that failed, so retrying doesn't duplicate the ones already saved.
+      this.createRows.clear();
+      failed.forEach((group) => this.createRows.push(group));
+      this.errorMessage.set(`${failed.length} din ${groups.length} comenzi nu au putut fi salvate.`);
     });
   }
 
@@ -366,14 +385,9 @@ export class ComandaComponent {
     });
   }
 
-  private setCreateStageFieldsEnabled(enabled: boolean): void {
-    for (const name of CREATE_STAGE_FIELDS) {
-      const control = this.form.get(name);
-      if (enabled) {
-        control?.enable();
-      } else {
-        control?.disable();
-      }
+  private setDetailFieldsDisabled(): void {
+    for (const name of DETAIL_FIELDS) {
+      this.form.get(name)?.disable();
     }
   }
 

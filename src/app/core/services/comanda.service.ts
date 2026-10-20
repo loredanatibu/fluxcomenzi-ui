@@ -13,7 +13,7 @@ export interface ComandaPayload {
   emailFurnizor: string;
   termenLivrare: string;
   comandaTrimisa: boolean;
-  comandaReceptionata: boolean;
+  comandaReceptionata: number;
   observatii: string;
 }
 

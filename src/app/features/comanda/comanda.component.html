@@ -16,6 +16,14 @@
       <button
         type="button"
         class="comanda__menu-item"
+        [class.comanda__menu-item--active]="mode() === 'receptie'"
+        (click)="selectMode('receptie')"
+      >
+        Recepție Comandă
+      </button>
+      <button
+        type="button"
+        class="comanda__menu-item"
         [class.comanda__menu-item--active]="mode() === 'update'"
         (click)="selectMode('update')"
       >
@@ -57,17 +65,57 @@
         </label>
       </div>
 
-      <label class="comanda__field" *ngIf="mode() !== 'update'">
+      <ng-container *ngIf="mode() === 'create'">
+        <div class="comanda__table-scroll">
+          <table class="comanda__table comanda__table--entry">
+            <thead>
+              <tr>
+                <th>Material<span class="required-marker">*</span></th>
+                <th>Cantitate<span class="required-marker">*</span></th>
+                <th>U.M.<span class="required-marker">*</span></th>
+                <th>Furnizor<span class="required-marker">*</span></th>
+                <th>Email furnizor<span class="required-marker">*</span></th>
+                <th>Termen livrare<span class="required-marker">*</span></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let group of createRows.controls; let i = index" [formGroup]="group">
+                <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
+                <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
+                <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
+                <td><input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" /></td>
+                <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
+                <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
+                <td>
+                  <button
+                    type="button"
+                    class="comanda__row-remove"
+                    [disabled]="createRows.length === 1 || isSubmitting()"
+                    (click)="removeCreateRow(i)"
+                    aria-label="Șterge linia"
+                  >
+                    ×
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <button
+          type="button"
+          class="comanda__add-row"
+          [disabled]="!selectedLucrareId() || isSubmitting()"
+          (click)="addCreateRow()"
+        >
+          + Adaugă linie
+        </button>
+      </ng-container>
+
+      <label class="comanda__field" *ngIf="mode() === 'delete'">
         <span>Nume material<span class="required-marker">*</span></span>
-        <input
-          *ngIf="mode() === 'create'"
-          type="text"
-          formControlName="numeMaterial"
-          autocomplete="off"
-          maxlength="200"
-        />
         <app-combo-select
-          *ngIf="mode() === 'delete'"
           [options]="comandaOptions()"
           [loading]="isLoadingComenzi()"
           [disabled]="!selectedLucrareId()"
@@ -77,7 +125,7 @@
         ></app-combo-select>
       </label>
 
-      <ng-container *ngIf="mode() !== 'update'">
+      <ng-container *ngIf="mode() === 'delete'">
         <div class="comanda__row">
           <label class="comanda__field comanda__field--sm">
             <span>Cantitate<span class="required-marker">*</span></span>
@@ -115,24 +163,14 @@
                 <input type="checkbox" formControlName="comandaTrimisa" />
                 <span>Trimis</span>
               </label>
-
-              <label class="comanda__checkbox">
-                <input type="checkbox" formControlName="comandaReceptionata" />
-                <span>Recepționat</span>
-              </label>
             </div>
           </div>
         </div>
-
-        <label class="comanda__field">
-          <span>Observații</span>
-          <textarea formControlName="observatii" rows="3" maxlength="200"></textarea>
-        </label>
       </ng-container>
 
       <div class="comanda__actions">
         <button
-          *ngIf="mode() !== 'update'"
+          *ngIf="!isGridMode()"
           class="comanda__submit"
           [class.comanda__submit--danger]="mode() === 'delete'"
           type="submit"
@@ -145,7 +183,7 @@
         <p *ngIf="successMessage()" class="comanda__success">{{ successMessage() }}</p>
       </div>
 
-      <div class="comanda__grid" *ngIf="mode() === 'update'">
+      <div class="comanda__grid" *ngIf="isGridMode()">
         <p *ngIf="!selectedLucrareId()" class="comanda__hint">Alege o lucrare pentru a vedea comenzile aferente.</p>
 
         <ng-container *ngIf="selectedLucrareId()">
@@ -159,7 +197,7 @@
               <button
                 type="button"
                 class="comanda__submit"
-                [disabled]="!gridForm.dirty || isSubmitting()"
+                [disabled]="!gridForm.dirty || gridForm.invalid || isSubmitting()"
                 (click)="saveGridChanges()"
               >
                 {{ isSubmitting() ? 'Se salvează...' : 'Salvează modificările' }}
@@ -167,7 +205,7 @@
             </div>
 
             <div class="comanda__table-scroll">
-              <table class="comanda__table">
+              <table class="comanda__table" *ngIf="mode() === 'update'">
                 <thead>
                   <tr>
                     <th>Material</th>
@@ -177,8 +215,6 @@
                     <th>Email furnizor</th>
                     <th>Termen livrare</th>
                     <th>Trimisă</th>
-                    <th>Recepționată</th>
-                    <th>Observații</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -190,9 +226,33 @@
                     <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
                     <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
                     <td class="comanda__table-checkbox"><input type="checkbox" formControlName="comandaTrimisa" /></td>
-                    <td class="comanda__table-checkbox">
-                      <input type="checkbox" formControlName="comandaReceptionata" />
-                    </td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <!-- Recepție: the order itself is read-only here, only what was received is editable. -->
+              <table class="comanda__table comanda__table--receptie" *ngIf="mode() === 'receptie'">
+                <thead>
+                  <tr>
+                    <th>Material</th>
+                    <th>Cantitate</th>
+                    <th>U.M.</th>
+                    <th>Furnizor</th>
+                    <th>Termen livrare</th>
+                    <th>Recepționat</th>
+                    <th>Observații</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let group of gridForm.controls; let i = index" [formGroup]="group">
+                    <ng-container *ngIf="filteredComenzi()[i] as c">
+                      <td [title]="c.numeMaterial">{{ c.numeMaterial }}</td>
+                      <td>{{ c.cantitate }}</td>
+                      <td>{{ c.unitateMasura }}</td>
+                      <td [title]="c.numeFurnizor">{{ c.numeFurnizor }}</td>
+                      <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
+                    </ng-container>
+                    <td><input type="number" formControlName="comandaReceptionata" step="0.001" min="0" /></td>
                     <td>
                       <textarea
                         class="comanda__table-observatii"

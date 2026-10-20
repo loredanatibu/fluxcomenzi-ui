@@ -222,39 +222,31 @@
 
   th:nth-child(1),
   td:nth-child(1) {
-    width: 12%;
+    width: 20%;
   }
   th:nth-child(2),
   td:nth-child(2) {
-    width: 8%;
+    width: 10%;
   }
   th:nth-child(3),
   td:nth-child(3) {
-    width: 6%;
+    width: 8%;
   }
   th:nth-child(4),
   td:nth-child(4) {
-    width: 10%;
+    width: 15%;
   }
   th:nth-child(5),
   td:nth-child(5) {
-    width: 13%;
+    width: 20%;
   }
   th:nth-child(6),
   td:nth-child(6) {
-    width: 13%;
+    width: 17%;
   }
   th:nth-child(7),
   td:nth-child(7) {
-    width: 7%;
-  }
-  th:nth-child(8),
-  td:nth-child(8) {
-    width: 9%;
-  }
-  th:nth-child(9),
-  td:nth-child(9) {
-    width: 22%;
+    width: 10%;
   }
 
   // At rest, editable cells read as plain text: no borders, no fill, no column
@@ -304,6 +296,125 @@
   input[type='checkbox']:focus-visible {
     outline: 2px solid var(--color-primary);
     outline-offset: 2px;
+  }
+}
+
+// Create & Recepție: inputs keep a visible border at rest -- empty fields to fill in
+// (create), or the only editable cells among read-only order data (recepție) --
+// unlike the update grid, where every cell is editable and reads as plain text.
+.comanda__table--entry,
+.comanda__table--receptie {
+  tbody tr:hover td {
+    background: transparent;
+  }
+
+  input:not([type='checkbox']),
+  textarea {
+    border-color: var(--color-border);
+    background: var(--color-bg);
+  }
+
+  input:disabled,
+  textarea:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+  }
+
+  input.ng-invalid.ng-touched,
+  textarea.ng-invalid.ng-touched {
+    border-color: var(--color-danger);
+  }
+}
+
+// Material, Cantitate, U.M., Furnizor, Email, Termen livrare, remove button.
+.comanda__table--entry {
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 22%;
+  }
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 17%;
+  }
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 22%;
+  }
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 18%;
+  }
+  th:nth-child(7),
+  td:nth-child(7) {
+    width: 3rem;
+    text-align: center;
+  }
+}
+
+// Material, Cantitate, U.M., Furnizor, Termen livrare, Recepționat, Observații.
+.comanda__table--receptie {
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 18%;
+  }
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 14%;
+  }
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 13%;
+  }
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 11%;
+  }
+  th:nth-child(7),
+  td:nth-child(7) {
+    width: 26%;
+    white-space: normal;
+  }
+}
+
+.comanda__row-remove {
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+}
+
+.comanda__add-row {
+  align-self: flex-start;
+  padding: 0.45rem 0.9rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--color-primary);
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 }
 
