@@ -15,6 +15,7 @@ import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.uti
 type ComandaMode = 'create' | 'receptie' | 'update';
 
 const REQUIRED_ROW_LABELS: Record<string, string> = {
+  requestedBy: 'Solicitant',
   numeMaterial: 'Nume material',
   cantitate: 'Cantitate',
   unitateMasura: 'Unitate măsură',
@@ -170,7 +171,7 @@ export class ComandaComponent {
 
   private newCreateRow(): FormGroup {
     return this.fb.group({
-      requestedBy: [''],
+      requestedBy: ['', Validators.required],
       numeMaterial: ['', Validators.required],
       cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
       unitateMasura: ['', Validators.required],
