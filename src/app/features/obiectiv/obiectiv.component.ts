@@ -115,16 +115,15 @@ export class ObiectivComponent {
       return;
     }
 
-    // Nume/alias are only ever chosen/displayed, never typed, in update mode.
-    nume.disable();
-    alias.disable();
-    nume.clearValidators();
-    alias.clearValidators();
+    // Update: every field is editable once an obiectiv is picked -- nume in place in the
+    // Obiectiv combobox (freeText), the rest in their own fields. Nume is the only required
+    // one; alias, data începere and termen execuție stay optional.
+    nume.enable();
+    alias.enable();
     termenExecutie.enable();
     dataIncepere.enable();
-
-    // "Nume" (the objective picked above) is the only required field in update mode --
-    // termen execuție and data începere stay optional even though editable.
+    nume.setValidators(Validators.required);
+    alias.clearValidators();
     termenExecutie.clearValidators();
     dataIncepere.clearValidators();
     [nume, alias, termenExecutie, dataIncepere].forEach((c) => c.updateValueAndValidity({ emitEvent: false }));
@@ -147,6 +146,12 @@ export class ObiectivComponent {
       },
       { emitEvent: false },
     );
+  }
+
+  // Update mode: the Obiectiv combobox is editable in place (freeText) once an obiectiv is
+  // picked -- this carries the typed text into the form as the new nume.
+  onObiectivNameEdited(text: string): void {
+    this.form.get('nume')!.setValue(text);
   }
 
   submit(): void {
@@ -185,7 +190,11 @@ export class ObiectivComponent {
         this.successMessage.set(mode === 'update' ? 'Obiectivul a fost actualizat.' : 'Obiectivul a fost salvat.');
         if (mode === 'create') {
           this.form.reset();
+          return;
         }
+        // Keep the list in step with what was just saved, so the combobox shows the new nume.
+        const id = this.selectedObiectivId();
+        this.obiective.set(this.obiective().map((o) => (o.id === id ? { ...o, ...payload } : o)));
       },
       error: () => {
         this.isSubmitting.set(false);

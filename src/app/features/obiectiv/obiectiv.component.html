@@ -32,8 +32,10 @@
             [options]="obiectivOptions()"
             [loading]="isLoadingObiective()"
             [value]="selectedObiectivId()"
+            [freeText]="true"
             placeholder="Alege obiectivul"
             (valueChange)="onObiectivSelected($event)"
+            (queryChange)="onObiectivNameEdited($event)"
           ></app-combo-select>
 
           <!-- Only an obiectiv without lucrari can be deleted (the backend refuses otherwise). -->
@@ -58,13 +60,13 @@
       </label>
 
       <label class="obiectiv__field">
-        <span>Termen execuție<span *ngIf="mode() === 'create'" class="required-marker">*</span></span>
-        <app-date-input type="date" formControlName="termenExecutie"></app-date-input>
+        <span>Data începere<span *ngIf="mode() === 'create'" class="required-marker">*</span></span>
+        <app-date-input type="date" formControlName="dataIncepere"></app-date-input>
       </label>
 
       <label class="obiectiv__field">
-        <span>Data începere<span *ngIf="mode() === 'create'" class="required-marker">*</span></span>
-        <app-date-input type="date" formControlName="dataIncepere"></app-date-input>
+        <span>Termen execuție<span *ngIf="mode() === 'create'" class="required-marker">*</span></span>
+        <app-date-input type="date" formControlName="termenExecutie"></app-date-input>
       </label>
 
       <p *ngIf="dateRangeError()" class="obiectiv__field-error">{{ dateRangeError() }}</p>
