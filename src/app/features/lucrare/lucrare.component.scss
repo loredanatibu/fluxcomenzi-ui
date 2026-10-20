@@ -88,6 +88,32 @@
   }
 }
 
+.lucrare__field--obiectiv {
+  max-width: none;
+}
+
+// The combobox keeps the usual field width; the obiectiv's nume sits to its right.
+.lucrare__obiectiv-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  app-combo-select {
+    flex: 0 0 420px;
+    max-width: 100%;
+  }
+}
+
+.lucrare__obiectiv-nume {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  opacity: 0.8;
+}
+
 .lucrare__table-scroll {
   overflow-x: auto;
   min-width: 0;

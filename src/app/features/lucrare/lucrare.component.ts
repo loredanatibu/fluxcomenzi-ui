@@ -65,7 +65,18 @@ export class LucrareComponent {
       .map((l) => ({ value: l.id, label: l.nume }));
   });
 
-  readonly obiectivOptions = computed<ComboOption[]>(() => this.obiective().map((o) => ({ value: o.id, label: o.nume })));
+  // Create lists obiective by alias (falling back to nume when an obiectiv has none), with
+  // the full nume shown alongside once one is picked; update keeps listing them by nume.
+  readonly obiectivOptions = computed<ComboOption[]>(() =>
+    this.obiective().map((o) => ({
+      value: o.id,
+      label: this.mode() === 'create' ? o.alias || o.nume : o.nume,
+    })),
+  );
+  readonly selectedObiectivNume = computed(() => {
+    const id = this.selectedIdObiectiv();
+    return id == null ? null : (this.obiective().find((o) => o.id === id)?.nume ?? null);
+  });
 
   readonly form = this.fb.group({
     nume: ['', Validators.required],
@@ -102,6 +113,7 @@ export class LucrareComponent {
       });
 
     this.form.get('idObiectiv')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.selectedIdObiectiv.set(value ?? null);
       if (this.mode() === 'create') {
         if (value != null) {
           this.createRows.enable();

@@ -24,15 +24,22 @@
     </nav>
 
     <form class="lucrare__form" [formGroup]="form" (ngSubmit)="submit()">
-      <label class="lucrare__field">
+      <label class="lucrare__field lucrare__field--obiectiv">
         <span>Obiectiv<span class="required-marker">*</span></span>
-        <app-combo-select
-          formControlName="idObiectiv"
-          [options]="obiectivOptions()"
-          [loading]="isLoadingObiective()"
-          [selectOnly]="mode() === 'update'"
-          placeholder="Alege un obiectiv"
-        ></app-combo-select>
+        <div class="lucrare__obiectiv-row">
+          <app-combo-select
+            formControlName="idObiectiv"
+            [options]="obiectivOptions()"
+            [loading]="isLoadingObiective()"
+            [selectOnly]="mode() === 'update'"
+            [placeholder]="mode() === 'create' ? 'Alege aliasul obiectivului' : 'Alege un obiectiv'"
+          ></app-combo-select>
+
+          <!-- Create picks by alias, so spell out which obiectiv that is. -->
+          <span *ngIf="mode() === 'create' && selectedObiectivNume() as nume" class="lucrare__obiectiv-nume" [title]="nume">
+            {{ nume }}
+          </span>
+        </div>
       </label>
 
       <ng-container *ngIf="mode() === 'create'">
