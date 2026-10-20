@@ -51,6 +51,7 @@
                   <button
                     type="button"
                     class="lucrare__row-remove"
+                    (mousedown)="$event.preventDefault()"
                     [disabled]="createRows.length === 1 || isSubmitting()"
                     (click)="removeCreateRow(i)"
                     title="Elimină linia"
@@ -67,6 +68,7 @@
         <button
           type="button"
           class="lucrare__add-row"
+          (mousedown)="$event.preventDefault()"
           [disabled]="!form.get('idObiectiv')!.value || isSubmitting()"
           (click)="addCreateRow()"
         >
@@ -93,6 +95,7 @@
             *ngIf="canDeleteSelected()"
             type="button"
             class="lucrare__delete"
+            (mousedown)="$event.preventDefault()"
             [disabled]="isSubmitting()"
             (click)="deleteLucrare()"
             title="Șterge lucrarea"

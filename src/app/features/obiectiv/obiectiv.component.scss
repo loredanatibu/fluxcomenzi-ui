@@ -154,6 +154,13 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  // No focus ring at all: these buttons add/remove rows, so the ring would linger
+  // where the button used to be once the layout shifts underneath it.
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
 }
 
 .obiectiv__error {

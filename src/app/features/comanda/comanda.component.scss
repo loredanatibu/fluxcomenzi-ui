@@ -304,40 +304,62 @@
   }
 }
 
-// Solicitant, Material, Cantitate, U.M., Furnizor, Email, Termen livrare, remove button.
+// Material, Cantitate, U.M., Furnizor, Email, Termen livrare, remove button --
+// the solicitant is picked once per group, above its table.
 .comanda__table--entry {
   th:nth-child(1),
   td:nth-child(1) {
-    width: 13%;
+    width: 22%;
   }
   th:nth-child(2),
   td:nth-child(2) {
-    width: 19%;
+    width: 10%;
   }
   th:nth-child(3),
   td:nth-child(3) {
-    width: 9%;
+    width: 8%;
   }
   th:nth-child(4),
   td:nth-child(4) {
-    width: 7%;
+    width: 17%;
   }
   th:nth-child(5),
   td:nth-child(5) {
-    width: 14%;
+    width: 22%;
   }
   th:nth-child(6),
   td:nth-child(6) {
-    width: 19%;
+    width: 18%;
   }
   th:nth-child(7),
   td:nth-child(7) {
-    width: 17%;
-  }
-  th:nth-child(8),
-  td:nth-child(8) {
     width: 3rem;
     text-align: center;
+  }
+}
+
+// Create mode: one card per solicitant, holding its combobox, rows and "Adaugă linie".
+.comanda__solicitant {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.comanda__solicitant-header {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+
+  .comanda__field {
+    flex: 1;
+  }
+
+  // Line the × up with the combobox, not with its label.
+  .comanda__row-remove {
+    margin-bottom: 0.4rem;
   }
 }
 
@@ -398,6 +420,13 @@
     opacity: 0.4;
     cursor: not-allowed;
   }
+
+  // No focus ring at all: these buttons add/remove rows, so the ring would linger
+  // where the button used to be once the layout shifts underneath it.
+  &:focus,
+  &:focus-visible {
+    outline: none;
+  }
 }
 
 .comanda__add-row {
@@ -417,6 +446,13 @@
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+
+  // No focus ring at all: these buttons add/remove rows, so the ring would linger
+  // where the button used to be once the layout shifts underneath it.
+  &:focus,
+  &:focus-visible {
+    outline: none;
   }
 }
 

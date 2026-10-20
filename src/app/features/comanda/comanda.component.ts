@@ -1,4 +1,4 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, ElementRef, Injector, computed, effect, inject, afterNextRender, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -6,6 +6,7 @@ import { catchError, forkJoin, map, merge, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ComandaService, ComandaPayload } from '../../core/services/comanda.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
+import { SolicitantService } from '../../core/services/solicitant.service';
 import { Comanda } from '../../core/models/comanda.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
@@ -15,7 +16,6 @@ import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.uti
 type ComandaMode = 'create' | 'receptie' | 'update';
 
 const REQUIRED_ROW_LABELS: Record<string, string> = {
-  requestedBy: 'Solicitant',
   numeMaterial: 'Nume material',
   cantitate: 'Cantitate',
   unitateMasura: 'Unitate măsură',
@@ -33,6 +33,8 @@ const REQUIRED_ROW_LABELS: Record<string, string> = {
 })
 export class ComandaComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   readonly mode = signal<ComandaMode>('create');
   readonly isSubmitting = signal(false);
@@ -61,9 +63,16 @@ export class ComandaComponent {
   readonly isGridMode = computed(() => this.mode() === 'update' || this.mode() === 'receptie');
   gridRows: Comanda[] = [];
 
-  // Create mode: one FormGroup per new comanda, all saved under the selected lucrare.
-  // Disabled until a Lucrare is picked; "Adaugă linie" appends another empty row.
-  readonly createRows = new FormArray<FormGroup>([this.newCreateRow()]);
+  // Create mode: comenzi are grouped by solicitant -- each group is { requestedBy, rows },
+  // with one FormGroup per new comanda in rows, all saved under the selected lucrare.
+  // Disabled until a Lucrare is picked; "Adaugă linie" appends a row to its own group,
+  // "Adaugă solicitant" appends another group.
+  readonly solicitantGroups = new FormArray<FormGroup>([this.newSolicitantGroup()]);
+
+  // Loaded once, up front: the Solicitant combobox options shared by every group.
+  // requestedBy stores numePrenume (no FK -- see solicitanti in schema.sql), so that's the value.
+  readonly solicitantOptions = signal<ComboOption[]>([]);
+  readonly isLoadingSolicitanti = signal(false);
 
   // Every mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then scopes
   // which lucrari are selectable (in create, before the rows become editable; in update
@@ -96,29 +105,31 @@ export class ComandaComponent {
     readonly authService: AuthService,
     private readonly comandaService: ComandaService,
     private readonly objectiveService: ObjectiveService,
+    private readonly solicitantService: SolicitantService,
   ) {
     // Creează Comandă starts with nothing selected: Obiectiv must be chosen first,
-    // which unlocks Lucrare, which in turn unlocks the rows.
+    // which unlocks Lucrare, which in turn unlocks the solicitant groups.
     this.form.get('idLucrare')?.disable();
-    this.createRows.disable();
+    this.solicitantGroups.disable();
 
     if (this.authService.isAuthenticated()) {
       this.loadObiectiveCuLucrari();
+      this.loadSolicitanti();
     }
 
-    merge(this.form.statusChanges, this.createRows.statusChanges)
+    merge(this.form.statusChanges, this.solicitantGroups.statusChanges)
       .pipe(takeUntilDestroyed())
       .subscribe(() => {
-        this.formValid.set(this.form.get('idLucrare')!.valid && this.createRows.valid);
+        this.formValid.set(this.form.get('idLucrare')!.valid && this.solicitantGroups.valid);
       });
 
     this.form.get('idLucrare')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
       this.selectedLucrareId.set(value);
       if (this.mode() === 'create') {
         if (value != null) {
-          this.createRows.enable();
+          this.solicitantGroups.enable();
         } else {
-          this.createRows.disable();
+          this.solicitantGroups.disable();
         }
       }
     });
@@ -159,19 +170,50 @@ export class ComandaComponent {
     }
   }
 
-  addCreateRow(): void {
-    this.createRows.push(this.newCreateRow());
+  rowsOf(group: FormGroup): FormArray<FormGroup> {
+    return group.get('rows') as FormArray<FormGroup>;
   }
 
-  removeCreateRow(index: number): void {
-    if (this.createRows.length > 1) {
-      this.createRows.removeAt(index);
+  addSolicitantGroup(): void {
+    this.solicitantGroups.push(this.newSolicitantGroup());
+    const index = this.solicitantGroups.length - 1;
+    this.focusAfterRender(`[data-solicitant="${index}"] app-combo-select input`);
+  }
+
+  removeSolicitantGroup(index: number): void {
+    if (this.solicitantGroups.length > 1) {
+      this.solicitantGroups.removeAt(index);
     }
+  }
+
+  addCreateRow(groupIndex: number): void {
+    this.rowsOf(this.solicitantGroups.at(groupIndex)).push(this.newCreateRow());
+    this.focusAfterRender(`[data-solicitant="${groupIndex}"] tbody tr:last-child input`);
+  }
+
+  removeCreateRow(groupIndex: number, rowIndex: number): void {
+    const rows = this.rowsOf(this.solicitantGroups.at(groupIndex));
+    if (rows.length > 1) {
+      rows.removeAt(rowIndex);
+    }
+  }
+
+  // Moves focus into the field just added, so the user can type straight away.
+  private focusAfterRender(selector: string): void {
+    afterNextRender(() => this.host.nativeElement.querySelector<HTMLInputElement>(selector)?.focus(), {
+      injector: this.injector,
+    });
+  }
+
+  private newSolicitantGroup(): FormGroup {
+    return this.fb.group({
+      requestedBy: [null as string | null, Validators.required],
+      rows: this.fb.array<FormGroup>([this.newCreateRow()]),
+    });
   }
 
   private newCreateRow(): FormGroup {
     return this.fb.group({
-      requestedBy: ['', Validators.required],
       numeMaterial: ['', Validators.required],
       cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
       unitateMasura: ['', Validators.required],
@@ -181,9 +223,9 @@ export class ComandaComponent {
     });
   }
 
-  private resetCreateRows(): void {
-    this.createRows.clear();
-    this.createRows.push(this.newCreateRow());
+  private resetSolicitantGroups(): void {
+    this.solicitantGroups.clear();
+    this.solicitantGroups.push(this.newSolicitantGroup());
   }
 
   saveGridChanges(): void {
@@ -274,8 +316,8 @@ export class ComandaComponent {
     this.selectedIdObiectiv.set(null);
     this.form.reset();
     this.form.get('idLucrare')?.disable();
-    this.resetCreateRows();
-    this.createRows.disable();
+    this.resetSolicitantGroups();
+    this.solicitantGroups.disable();
 
     this.loadObiectiveCuLucrari();
     if (mode !== 'create') {
@@ -290,11 +332,10 @@ export class ComandaComponent {
       return;
     }
 
-    const invalidIndex = this.createRows.controls.findIndex((group) => group.invalid);
-    if (invalidIndex !== -1) {
-      this.createRows.markAllAsTouched();
-      const message = getRequiredFieldsMessage(this.createRows.at(invalidIndex), REQUIRED_ROW_LABELS);
-      this.errorMessage.set(`Linia ${invalidIndex + 1}: ${message}`);
+    const invalidMessage = this.findInvalidCreateMessage();
+    if (invalidMessage) {
+      this.solicitantGroups.markAllAsTouched();
+      this.errorMessage.set(invalidMessage);
       return;
     }
 
@@ -302,9 +343,12 @@ export class ComandaComponent {
     this.successMessage.set(null);
     this.isSubmitting.set(true);
 
-    const groups = [...this.createRows.controls];
-    const requests = groups.map((group) => {
-      const v = group.getRawValue();
+    // Flattened (solicitant group, row) pairs, so results map back to where each row lives.
+    const entries = this.solicitantGroups.controls.flatMap((solicitantGroup) =>
+      this.rowsOf(solicitantGroup).controls.map((row) => ({ solicitantGroup, row })),
+    );
+    const requests = entries.map(({ solicitantGroup, row }) => {
+      const v = row.getRawValue();
       const payload: ComandaPayload = {
         idLucrare,
         numeMaterial: v.numeMaterial,
@@ -315,7 +359,7 @@ export class ComandaComponent {
         termenLivrare: v.termenLivrare,
         comandaReceptionata: 0,
         observatii: '',
-        requestedBy: v.requestedBy ?? '',
+        requestedBy: solicitantGroup.get('requestedBy')!.value,
       };
       return this.comandaService.create(payload).pipe(
         map(() => true),
@@ -325,19 +369,42 @@ export class ComandaComponent {
 
     forkJoin(requests).subscribe((results) => {
       this.isSubmitting.set(false);
-      const failed = groups.filter((_, i) => !results[i]);
+      const failed = new Set(entries.filter((_, i) => !results[i]).map(({ row }) => row));
 
-      if (failed.length === 0) {
-        this.successMessage.set(groups.length === 1 ? 'Comanda a fost salvată.' : 'Comenzile au fost salvate.');
-        this.resetCreateRows();
+      if (failed.size === 0) {
+        this.successMessage.set(entries.length === 1 ? 'Comanda a fost salvată.' : 'Comenzile au fost salvate.');
+        this.resetSolicitantGroups();
         return;
       }
 
-      // Keep only the rows that failed, so retrying doesn't duplicate the ones already saved.
-      this.createRows.clear();
-      failed.forEach((group) => this.createRows.push(group));
-      this.errorMessage.set(`${failed.length} din ${groups.length} comenzi nu au putut fi salvate.`);
+      // Keep only the rows that failed (and the solicitanti they belong to), so retrying
+      // doesn't duplicate the ones already saved.
+      for (let g = this.solicitantGroups.length - 1; g >= 0; g--) {
+        const rows = this.rowsOf(this.solicitantGroups.at(g));
+        for (let r = rows.length - 1; r >= 0; r--) {
+          if (!failed.has(rows.at(r))) rows.removeAt(r);
+        }
+        if (rows.length === 0) this.solicitantGroups.removeAt(g);
+      }
+      this.errorMessage.set(`${failed.size} din ${entries.length} comenzi nu au putut fi salvate.`);
     });
+  }
+
+  // First problem in the create form, as a message naming the solicitant and line, or null.
+  private findInvalidCreateMessage(): string | null {
+    for (const [g, solicitantGroup] of this.solicitantGroups.controls.entries()) {
+      const nume: string | null = solicitantGroup.get('requestedBy')!.value;
+      const label = nume || `Solicitantul ${g + 1}`;
+      if (solicitantGroup.get('requestedBy')!.invalid) {
+        return `${label}: Alege solicitantul.`;
+      }
+      const rows = this.rowsOf(solicitantGroup);
+      const r = rows.controls.findIndex((row) => row.invalid);
+      if (r !== -1) {
+        return `${label}, linia ${r + 1}: ${getRequiredFieldsMessage(rows.at(r), REQUIRED_ROW_LABELS)}`;
+      }
+    }
+    return null;
   }
 
   private loadObiectiveCuLucrari(): void {
@@ -351,6 +418,20 @@ export class ComandaComponent {
       error: () => {
         this.isLoadingObiective.set(false);
         this.errorMessage.set('Obiectivele nu au putut fi încărcate.');
+      },
+    });
+  }
+
+  private loadSolicitanti(): void {
+    this.isLoadingSolicitanti.set(true);
+    this.solicitantService.getAll().subscribe({
+      next: (list) => {
+        this.solicitantOptions.set(list.map((s) => ({ value: s.numePrenume, label: s.numePrenume })));
+        this.isLoadingSolicitanti.set(false);
+      },
+      error: () => {
+        this.isLoadingSolicitanti.set(false);
+        this.errorMessage.set('Solicitanții nu au putut fi încărcați.');
       },
     });
   }

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, ElementRef, Injector, computed, inject, afterNextRender, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
@@ -28,6 +28,8 @@ const REQUIRED_FIELD_LABELS: Record<string, string> = {
 })
 export class LucrareComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly injector = inject(Injector);
 
   readonly mode = signal<LucrareMode>('create');
   readonly isSubmitting = signal(false);
@@ -160,6 +162,15 @@ export class LucrareComponent {
 
   addCreateRow(): void {
     this.createRows.push(this.newCreateRow());
+    // Move focus into the new row: the button shifts down a row, and some browsers leave
+    // its focus ring painted where it used to be if focus stays on it.
+    afterNextRender(
+      () =>
+        this.host.nativeElement
+          .querySelector<HTMLInputElement>('.lucrare__table tbody tr:last-child input')
+          ?.focus(),
+      { injector: this.injector },
+    );
   }
 
   removeCreateRow(index: number): void {

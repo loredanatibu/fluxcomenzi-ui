@@ -41,6 +41,7 @@
             *ngIf="canDeleteSelected()"
             type="button"
             class="obiectiv__delete"
+            (mousedown)="$event.preventDefault()"
             [disabled]="isSubmitting()"
             (click)="deleteObiectiv()"
             title="Șterge obiectivul"

@@ -56,53 +56,95 @@
       </div>
 
       <ng-container *ngIf="mode() === 'create'">
-        <div class="comanda__table-scroll">
-          <table class="comanda__table comanda__table--entry">
-            <thead>
-              <tr>
-                <th>Solicitant<span class="required-marker">*</span></th>
-                <th>Material<span class="required-marker">*</span></th>
-                <th>Cantitate<span class="required-marker">*</span></th>
-                <th>U.M.<span class="required-marker">*</span></th>
-                <th>Furnizor<span class="required-marker">*</span></th>
-                <th>Email furnizor<span class="required-marker">*</span></th>
-                <th>Termen livrare<span class="required-marker">*</span></th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let group of createRows.controls; let i = index" [formGroup]="group">
-                <td><input type="text" formControlName="requestedBy" autocomplete="off" maxlength="255" /></td>
-                <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
-                <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
-                <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
-                <td><input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" /></td>
-                <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
-                <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
-                <td>
-                  <button
-                    type="button"
-                    class="comanda__row-remove"
-                    [disabled]="createRows.length === 1 || isSubmitting()"
-                    (click)="removeCreateRow(i)"
-                    title="Elimină linia"
-                    aria-label="Elimină linia"
-                  >
-                    ×
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div
+          *ngFor="let solicitantGroup of solicitantGroups.controls; let g = index"
+          class="comanda__solicitant"
+          [formGroup]="solicitantGroup"
+          [attr.data-solicitant]="g"
+        >
+          <div class="comanda__solicitant-header">
+            <label class="comanda__field comanda__field--narrow">
+              <span>Solicitant<span class="required-marker">*</span></span>
+              <app-combo-select
+                formControlName="requestedBy"
+                [options]="solicitantOptions()"
+                [loading]="isLoadingSolicitanti()"
+                placeholder="Alege solicitantul"
+              ></app-combo-select>
+            </label>
+
+            <button
+              *ngIf="solicitantGroups.length > 1"
+              type="button"
+              class="comanda__row-remove"
+              (mousedown)="$event.preventDefault()"
+              [disabled]="isSubmitting()"
+              (click)="removeSolicitantGroup(g)"
+              title="Elimină solicitantul și liniile lui"
+              aria-label="Elimină solicitantul și liniile lui"
+            >
+              ×
+            </button>
+          </div>
+
+          <div class="comanda__table-scroll">
+            <table class="comanda__table comanda__table--entry">
+              <thead>
+                <tr>
+                  <th>Material<span class="required-marker">*</span></th>
+                  <th>Cantitate<span class="required-marker">*</span></th>
+                  <th>U.M.<span class="required-marker">*</span></th>
+                  <th>Furnizor<span class="required-marker">*</span></th>
+                  <th>Email furnizor<span class="required-marker">*</span></th>
+                  <th>Termen livrare<span class="required-marker">*</span></th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let group of rowsOf(solicitantGroup).controls; let i = index" [formGroup]="group">
+                  <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
+                  <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
+                  <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
+                  <td><input type="text" formControlName="numeFurnizor" autocomplete="off" maxlength="50" /></td>
+                  <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
+                  <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
+                  <td>
+                    <button
+                      type="button"
+                      class="comanda__row-remove"
+                      (mousedown)="$event.preventDefault()"
+                      [disabled]="rowsOf(solicitantGroup).length === 1 || isSubmitting()"
+                      (click)="removeCreateRow(g, i)"
+                      title="Elimină linia"
+                      aria-label="Elimină linia"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <button
+            type="button"
+            class="comanda__add-row"
+            (mousedown)="$event.preventDefault()"
+            [disabled]="!selectedLucrareId() || isSubmitting()"
+            (click)="addCreateRow(g)"
+          >
+            + Adaugă linie
+          </button>
         </div>
 
         <button
           type="button"
           class="comanda__add-row"
+          (mousedown)="$event.preventDefault()"
           [disabled]="!selectedLucrareId() || isSubmitting()"
-          (click)="addCreateRow()"
+          (click)="addSolicitantGroup()"
         >
-          + Adaugă linie
+          + Adaugă solicitant
         </button>
       </ng-container>
 
@@ -171,6 +213,7 @@
                       <button
                         type="button"
                         class="comanda__row-remove"
+                        (mousedown)="$event.preventDefault()"
                         [disabled]="isSubmitting()"
                         (click)="deleteGridRow(i)"
                         title="Șterge comanda"
