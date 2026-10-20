@@ -32,7 +32,7 @@
             [options]="obiectivOptions()"
             [loading]="isLoadingObiective()"
             [value]="selectedObiectivId()"
-            placeholder="Alege aliasul obiectivului"
+            placeholder="Alege obiectivul"
             (valueChange)="onObiectivSelected($event)"
           ></app-combo-select>
 
@@ -50,10 +50,6 @@
             ×
           </button>
         </div>
-        <!-- Picked by alias, so spell out which obiectiv that is. -->
-        <span *ngIf="mode() === 'update' && selectedObiectivNume() as nume" class="obiectiv__nume" [title]="nume">
-          {{ nume }}
-        </span>
       </label>
 
       <label class="obiectiv__field">
