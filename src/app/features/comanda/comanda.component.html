@@ -148,7 +148,8 @@
           type="button"
           class="comanda__add-row comanda__add-row--solicitant"
           (mousedown)="$event.preventDefault()"
-          [disabled]="!selectedLucrareId() || isSubmitting()"
+          [disabled]="!canAddSolicitant() || isSubmitting()"
+          [title]="canAddSolicitant() ? '' : 'Alege solicitantul și completează cel puțin un material'"
           (click)="addSolicitantGroup()"
         >
           + Adaugă solicitant

@@ -193,6 +193,14 @@ export class ComandaComponent {
     return group.get('rows') as FormArray<FormGroup>;
   }
 
+  // A new solicitant only makes sense once every existing one is chosen and has at least
+  // one fully filled-in material. Disabled groups (no lucrare yet) count as not ready.
+  canAddSolicitant(): boolean {
+    return this.solicitantGroups.controls.every(
+      (group) => group.get('requestedBy')!.valid && this.rowsOf(group).controls.some((row) => row.valid),
+    );
+  }
+
   addSolicitantGroup(): void {
     this.solicitantGroups.push(this.newSolicitantGroup());
     const index = this.solicitantGroups.length - 1;
