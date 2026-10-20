@@ -476,6 +476,19 @@
   }
 }
 
+// "Adaugă solicitant" adds a whole card, so it ranks above the dashed "Adaugă linie"
+// inside each card: solid border and a light tint in the active-menu blue.
+.comanda__add-row--solicitant {
+  border: 1px solid #2e6f9e;
+  background: rgba(46, 111, 158, 0.08);
+  color: #2e6f9e;
+
+  &:hover:not(:disabled) {
+    border-color: #2e6f9e;
+    background: rgba(46, 111, 158, 0.16);
+  }
+}
+
 .comanda__error {
   margin: 0;
   color: var(--color-danger);
