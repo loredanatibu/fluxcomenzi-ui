@@ -74,6 +74,16 @@
             </label>
 
             <button
+              type="button"
+              class="comanda__add-row"
+              (mousedown)="$event.preventDefault()"
+              [disabled]="!selectedLucrareId() || isSubmitting()"
+              (click)="addCreateRow(g)"
+            >
+              + Adaugă material
+            </button>
+
+            <button
               *ngIf="solicitantGroups.length > 1"
               type="button"
               class="comanda__row-remove"
@@ -131,15 +141,6 @@
             </table>
           </div>
 
-          <button
-            type="button"
-            class="comanda__add-row"
-            (mousedown)="$event.preventDefault()"
-            [disabled]="!selectedLucrareId() || isSubmitting()"
-            (click)="addCreateRow(g)"
-          >
-            + Adaugă linie
-          </button>
         </div>
 
         <button

@@ -377,8 +377,17 @@
     flex: 1;
   }
 
-  // Line the × up with the combobox, not with its label.
+  // Sits next to the Solicitant combobox: same height, and aligned with the combobox
+  // itself rather than its label (overrides the base align-self: flex-start).
+  .comanda__add-row {
+    align-self: flex-end;
+    height: 2.5rem;
+    white-space: nowrap;
+  }
+
+  // Line the × up with the combobox, not with its label, and keep it at the far right.
   .comanda__row-remove {
+    margin-left: auto;
     margin-bottom: 0.4rem;
   }
 }
