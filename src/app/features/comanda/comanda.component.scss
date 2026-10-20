@@ -338,6 +338,17 @@
   }
 }
 
+// The Solicitant/Furnizor comboboxes' dropdowns hang below their cell, so neither the
+// cells nor the scroll wrapper may clip them (create table and update grid).
+.comanda__table-scroll--entry {
+  overflow: visible;
+}
+
+.comanda__table--entry td,
+.comanda__table--update td {
+  overflow: visible;
+}
+
 // Create mode: one card per solicitant, holding its combobox, rows and "Adaugă linie".
 .comanda__solicitant {
   display: flex;

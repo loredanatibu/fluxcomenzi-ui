@@ -7,6 +7,8 @@ import { AuthService } from '../../core/services/auth.service';
 import { ComandaService, ComandaPayload } from '../../core/services/comanda.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { SolicitantService } from '../../core/services/solicitant.service';
+import { FurnizorService } from '../../core/services/furnizor.service';
+import { Furnizor } from '../../core/models/furnizor.model';
 import { Comanda } from '../../core/models/comanda.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
@@ -74,6 +76,22 @@ export class ComandaComponent {
   readonly solicitantOptions = signal<ComboOption[]>([]);
   readonly isLoadingSolicitanti = signal(false);
 
+  // Loaded once, up front, like solicitanti: the Furnizor combobox options for every row.
+  // numeFurnizor stores the furnizor's nume as text, so that's the value.
+  private furnizori: Furnizor[] = [];
+  readonly furnizorOptions = signal<ComboOption[]>([]);
+  readonly isLoadingFurnizori = signal(false);
+
+  // Update grid: older comenzi may hold a solicitant/furnizor typed by hand before the
+  // lookup lists existed. Their value is added as an extra option so the combobox still
+  // shows it instead of going blank.
+  readonly gridSolicitantOptions = computed(() =>
+    withExtraValues(this.solicitantOptions(), this.filteredComenzi().map((c) => c.requestedBy)),
+  );
+  readonly gridFurnizorOptions = computed(() =>
+    withExtraValues(this.furnizorOptions(), this.filteredComenzi().map((c) => c.numeFurnizor)),
+  );
+
   // Every mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then scopes
   // which lucrari are selectable (in create, before the rows become editable; in update
   // and recepție, before the comenzi grid for the chosen lucrare is shown).
@@ -106,6 +124,7 @@ export class ComandaComponent {
     private readonly comandaService: ComandaService,
     private readonly objectiveService: ObjectiveService,
     private readonly solicitantService: SolicitantService,
+    private readonly furnizorService: FurnizorService,
   ) {
     // Creează Comandă starts with nothing selected: Obiectiv must be chosen first,
     // which unlocks Lucrare, which in turn unlocks the solicitant groups.
@@ -115,6 +134,7 @@ export class ComandaComponent {
     if (this.authService.isAuthenticated()) {
       this.loadObiectiveCuLucrari();
       this.loadSolicitanti();
+      this.loadFurnizori();
     }
 
     merge(this.form.statusChanges, this.solicitantGroups.statusChanges)
@@ -217,10 +237,19 @@ export class ComandaComponent {
       numeMaterial: ['', Validators.required],
       cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
       unitateMasura: ['', Validators.required],
-      numeFurnizor: ['', Validators.required],
+      numeFurnizor: [null as string | null, Validators.required],
       emailFurnizor: ['', [Validators.required, Validators.email]],
       termenLivrare: ['', Validators.required],
     });
+  }
+
+  // Picking a furnizor fills in its email when the row has none yet; it stays editable.
+  onFurnizorSelected(row: FormGroup, nume: number | string | null): void {
+    const email = this.furnizori.find((f) => f.nume === nume)?.email;
+    const emailControl = row.get('emailFurnizor')!;
+    if (email && !emailControl.value) {
+      emailControl.setValue(email);
+    }
   }
 
   private resetSolicitantGroups(): void {
@@ -436,6 +465,21 @@ export class ComandaComponent {
     });
   }
 
+  private loadFurnizori(): void {
+    this.isLoadingFurnizori.set(true);
+    this.furnizorService.getAll().subscribe({
+      next: (list) => {
+        this.furnizori = list;
+        this.furnizorOptions.set(list.map((f) => ({ value: f.nume, label: f.nume })));
+        this.isLoadingFurnizori.set(false);
+      },
+      error: () => {
+        this.isLoadingFurnizori.set(false);
+        this.errorMessage.set('Furnizorii nu au putut fi încărcați.');
+      },
+    });
+  }
+
   private loadComenzi(): void {
     this.isLoadingComenzi.set(true);
     this.comandaService.getAll().subscribe({
@@ -449,6 +493,12 @@ export class ComandaComponent {
       },
     });
   }
+}
+
+function withExtraValues(options: ComboOption[], values: string[]): ComboOption[] {
+  const known = new Set(options.map((o) => o.value));
+  const extra = [...new Set(values)].filter((v) => v && !known.has(v)).map((v) => ({ value: v, label: v }));
+  return extra.length > 0 ? [...options, ...extra] : options;
 }
 
 function toDateTimeInputValue(value: string | null | undefined): string {
