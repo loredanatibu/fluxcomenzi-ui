@@ -192,41 +192,37 @@
     color: var(--color-text);
   }
 
-  // Solicitant, Material, Cantitate, U.M., Furnizor, Email, Termen livrare, Recepționat, delete button.
+  // Solicitant, Material, Cantitate, U.M., Furnizor, Termen livrare, Recepționat, delete button.
   th:nth-child(1),
   td:nth-child(1) {
-    width: 12%;
+    width: 20%;
   }
   th:nth-child(2),
   td:nth-child(2) {
-    width: 17%;
+    width: 20%;
   }
   th:nth-child(3),
   td:nth-child(3) {
-    width: 8%;
+    width: 9%;
   }
   th:nth-child(4),
   td:nth-child(4) {
-    width: 6%;
+    width: 7%;
   }
   th:nth-child(5),
   td:nth-child(5) {
-    width: 13%;
+    width: 18%;
   }
   th:nth-child(6),
   td:nth-child(6) {
-    width: 16%;
+    width: 17%;
   }
   th:nth-child(7),
   td:nth-child(7) {
-    width: 16%;
+    width: 9%;
   }
   th:nth-child(8),
   td:nth-child(8) {
-    width: 9%;
-  }
-  th:nth-child(9),
-  td:nth-child(9) {
     width: 3rem;
     text-align: center;
   }

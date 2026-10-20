@@ -249,7 +249,8 @@ export class ComandaComponent {
     });
   }
 
-  // Update grid: picking a different furnizor brings its email along (still editable).
+  // Update grid: there's no email column, so picking a different furnizor brings its
+  // email along in the row's (hidden) emailFurnizor value.
   onFurnizorSelected(row: FormGroup, nume: number | string | null): void {
     const email = this.furnizorEmail(nume);
     if (email) {

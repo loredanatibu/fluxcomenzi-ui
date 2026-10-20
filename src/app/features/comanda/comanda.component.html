@@ -200,7 +200,6 @@
                     <th>Cantitate</th>
                     <th>U.M.</th>
                     <th>Furnizor</th>
-                    <th>Email furnizor</th>
                     <th>Termen livrare</th>
                     <th>Recepționat</th>
                     <th></th>
@@ -228,7 +227,6 @@
                         (valueChange)="onFurnizorSelected(group, $event)"
                       ></app-combo-select>
                     </td>
-                    <td><input type="email" formControlName="emailFurnizor" autocomplete="off" maxlength="50" /></td>
                     <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
                     <!-- Read-only here: the received quantity is only edited in Recepție Comandă. -->
                     <td>{{ gridRows[i].comandaReceptionata }}</td>
