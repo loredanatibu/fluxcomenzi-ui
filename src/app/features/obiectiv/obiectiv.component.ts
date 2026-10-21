@@ -11,6 +11,7 @@ import { Obiectiv } from '../../core/models/obiectiv.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 
 type ObiectivMode = 'create' | 'update';
 
@@ -30,6 +31,7 @@ const REQUIRED_FIELD_LABELS: Record<string, string> = {
 })
 export class ObiectivComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly confirmDialog = inject(ConfirmDialogService);
 
   readonly mode = signal<ObiectivMode>('create');
   readonly isSubmitting = signal(false);
@@ -224,7 +226,7 @@ export class ObiectivComponent {
     });
   }
 
-  deleteObiectiv(): void {
+  async deleteObiectiv(): Promise<void> {
     const id = this.selectedObiectivId();
     if (!id) {
       this.errorMessage.set('Selectează un obiectiv.');
@@ -232,7 +234,14 @@ export class ObiectivComponent {
     }
 
     const nume = this.obiective().find((o) => o.id === id)?.nume ?? '';
-    if (!window.confirm(`Ștergi obiectivul „${nume}”?`)) return;
+    const confirmed = await this.confirmDialog.ask({
+      title: 'Ștergi obiectivul?',
+      message: 'Obiectivul va fi șters definitiv. ',
+      subject: nume,
+      confirmText: 'Șterge',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     this.errorMessage.set(null);
     this.successMessage.set(null);

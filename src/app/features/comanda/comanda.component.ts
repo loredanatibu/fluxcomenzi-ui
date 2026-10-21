@@ -13,6 +13,7 @@ import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 
 type ComandaMode = 'create' | 'receptie' | 'update';
 
@@ -33,6 +34,7 @@ const REQUIRED_ROW_LABELS: Record<string, string> = {
 })
 export class ComandaComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
 
@@ -304,9 +306,18 @@ export class ComandaComponent {
     });
   }
 
-  deleteGridRow(index: number): void {
+  async deleteGridRow(index: number): Promise<void> {
     const comanda = this.gridRows[index];
-    if (!comanda || !window.confirm(`Ștergi comanda „${comanda.numeMaterial}”?`)) return;
+    if (!comanda) return;
+
+    const confirmed = await this.confirmDialog.ask({
+      title: 'Ștergi comanda?',
+      message: 'Comanda va fi ștearsă definitiv.',
+      subject: `${comanda.numeMaterial} · ${comanda.cantitate} ${comanda.unitateMasura}`,
+      confirmText: 'Șterge',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     this.errorMessage.set(null);
     this.successMessage.set(null);

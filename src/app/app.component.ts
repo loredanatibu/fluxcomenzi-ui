@@ -4,11 +4,12 @@ import { Router, RouterOutlet } from '@angular/router';
 import { NavComponent } from './features/nav/nav.component';
 import { LoginComponent } from './features/login/login.component';
 import { AuthService } from './core/services/auth.service';
+import { ConfirmDialogComponent } from './shared/confirm-dialog/confirm-dialog.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [NgIf, RouterOutlet, NavComponent, LoginComponent],
+  imports: [NgIf, RouterOutlet, NavComponent, LoginComponent, ConfirmDialogComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.scss',
 })

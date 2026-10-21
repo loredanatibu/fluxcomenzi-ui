@@ -11,6 +11,7 @@ import { Lucrare } from '../../core/models/lucrare.model';
 import { Obiectiv } from '../../core/models/obiectiv.model';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
 import { getRequiredFieldsMessage } from '../../shared/forms/required-fields.util';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 
 type LucrareMode = 'create' | 'update';
 
@@ -28,6 +29,7 @@ const REQUIRED_FIELD_LABELS: Record<string, string> = {
 })
 export class LucrareComponent {
   private readonly fb = inject(FormBuilder);
+  private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
 
@@ -330,7 +332,7 @@ export class LucrareComponent {
     });
   }
 
-  deleteLucrare(): void {
+  async deleteLucrare(): Promise<void> {
     const id = this.selectedLucrareId();
     if (!id) {
       this.errorMessage.set('Selectează o lucrare.');
@@ -338,7 +340,14 @@ export class LucrareComponent {
     }
 
     const nume = this.lucrari().find((l) => l.id === id)?.nume ?? '';
-    if (!window.confirm(`Ștergi lucrarea „${nume}”?`)) return;
+    const confirmed = await this.confirmDialog.ask({
+      title: 'Ștergi lucrarea?',
+      message: 'Lucrarea va fi ștearsă definitiv.',
+      subject: nume,
+      confirmText: 'Șterge',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     this.errorMessage.set(null);
     this.successMessage.set(null);
