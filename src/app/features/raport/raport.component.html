@@ -101,6 +101,7 @@
                   <th>U.M.</th>
                   <th>Furnizor</th>
                   <th>Email furnizor</th>
+                  <th>Agent</th>
                   <th>Termen livrare</th>
                   <th title="Recepționată">R</th>
                   <th>Observații</th>
@@ -115,6 +116,7 @@
                   <td>{{ row.comanda.unitateMasura }}</td>
                   <td [title]="row.furnizor?.nume ?? ''">{{ row.furnizor?.nume }}</td>
                   <td [title]="row.furnizor?.email ?? ''">{{ row.furnizor?.email }}</td>
+                  <td [title]="row.agent?.numePrenume ?? ''">{{ row.agent?.numePrenume }}</td>
                   <td>{{ row.comanda.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                   <td>{{ row.comanda.comandaReceptionata }}</td>
                   <td [title]="row.comanda.observatii">{{ row.comanda.observatii }}</td>
