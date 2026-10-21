@@ -5,6 +5,8 @@ export interface Comanda {
   idLucrare: number;
   idSolicitant: number;
   idFurnizor: number;
+  // Only set when the comanda is supplied through an agent.
+  idAgent: number | null;
   numeMaterial: string;
   cantitate: number;
   unitateMasura: string;

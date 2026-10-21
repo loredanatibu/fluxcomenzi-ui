@@ -8,6 +8,7 @@ export interface ComandaPayload {
   idLucrare: number;
   idSolicitant: number;
   idFurnizor: number;
+  idAgent: number | null;
   numeMaterial: string;
   cantitate: number;
   unitateMasura: string;

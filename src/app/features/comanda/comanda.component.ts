@@ -8,6 +8,7 @@ import { ComandaService, ComandaPayload } from '../../core/services/comanda.serv
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { SolicitantService } from '../../core/services/solicitant.service';
 import { FurnizorService } from '../../core/services/furnizor.service';
+import { AgentService } from '../../core/services/agent.service';
 import { Comanda } from '../../core/models/comanda.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
@@ -22,6 +23,7 @@ const REQUIRED_ROW_LABELS: Record<string, string> = {
   cantitate: 'Cantitate',
   unitateMasura: 'Unitate măsură',
   idFurnizor: 'Furnizor',
+  idAgent: 'Agent',
   termenLivrare: 'Termen livrare',
 };
 
@@ -80,8 +82,16 @@ export class ComandaComponent {
   readonly furnizorOptions = signal<ComboOption[]>([]);
   readonly isLoadingFurnizori = signal(false);
 
+  // Agent is optional: only comenzi supplied through an agent have one, marked by the
+  // "prin agent" checkbox next to the Agent combobox, which stays disabled until it's
+  // ticked. Agenti are loaded lazily -- the first time a box is ticked, or a listed
+  // comanda already has an agent to name -- and the service caches them from then on.
+  readonly agentOptions = signal<ComboOption[]>([]);
+  readonly isLoadingAgenti = signal(false);
+
   private readonly numeSolicitantById = computed(() => labelsById(this.solicitantOptions()));
   private readonly numeFurnizorById = computed(() => labelsById(this.furnizorOptions()));
+  private readonly numeAgentById = computed(() => labelsById(this.agentOptions()));
 
   // Every mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then scopes
   // which lucrari are selectable (in create, before the rows become editable; in update
@@ -127,6 +137,7 @@ export class ComandaComponent {
     private readonly objectiveService: ObjectiveService,
     private readonly solicitantService: SolicitantService,
     private readonly furnizorService: FurnizorService,
+    private readonly agentService: AgentService,
   ) {
     // Creează Comandă starts with nothing selected: Obiectiv must be chosen first,
     // which unlocks Lucrare, which in turn unlocks the solicitant groups.
@@ -150,6 +161,10 @@ export class ComandaComponent {
       if (this.mode() === 'create') {
         if (value != null) {
           this.solicitantGroups.enable();
+          // enable() reaches every control, including the Agent comboboxes of unticked rows.
+          this.solicitantGroups.controls
+            .flatMap((group) => this.rowsOf(group).controls)
+            .forEach((row) => this.syncAgentControl(row));
         } else {
           this.solicitantGroups.disable();
         }
@@ -172,17 +187,26 @@ export class ComandaComponent {
     for (const c of rows) {
       this.gridForm.push(
         dirtyById.get(c.id) ??
-          this.fb.group({
-            idSolicitant: [c.idSolicitant, Validators.required],
-            numeMaterial: [c.numeMaterial],
-            cantitate: [c.cantitate],
-            unitateMasura: [c.unitateMasura],
-            idFurnizor: [c.idFurnizor, Validators.required],
-            termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
-            comandaReceptionata: [c.comandaReceptionata, [Validators.required, Validators.min(0)]],
-            observatii: [c.observatii],
-          }),
+          this.withAgentToggle(
+            this.fb.group({
+              idSolicitant: [c.idSolicitant, Validators.required],
+              numeMaterial: [c.numeMaterial],
+              cantitate: [c.cantitate],
+              unitateMasura: [c.unitateMasura],
+              idFurnizor: [c.idFurnizor, Validators.required],
+              prinAgent: [c.idAgent != null],
+              idAgent: [{ value: c.idAgent, disabled: c.idAgent == null }, Validators.required],
+              termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
+              comandaReceptionata: [c.comandaReceptionata, [Validators.required, Validators.min(0)]],
+              observatii: [c.observatii],
+            }),
+          ),
       );
+    }
+
+    // Listed comenzi that already have an agent need the agenti to show the name.
+    if (rows.some((c) => c.idAgent != null)) {
+      this.loadAgenti();
     }
 
     // clear() doesn't reset the array's own dirty flag, so recompute it from the rows.
@@ -295,13 +319,35 @@ export class ComandaComponent {
   }
 
   private newCreateRow(): FormGroup {
-    return this.fb.group({
-      numeMaterial: ['', Validators.required],
-      cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
-      unitateMasura: ['', Validators.required],
-      idFurnizor: [null as number | null, Validators.required],
-      termenLivrare: ['', Validators.required],
-    });
+    return this.withAgentToggle(
+      this.fb.group({
+        numeMaterial: ['', Validators.required],
+        cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
+        unitateMasura: ['', Validators.required],
+        idFurnizor: [null as number | null, Validators.required],
+        prinAgent: [false],
+        idAgent: [{ value: null as number | null, disabled: true }, Validators.required],
+        termenLivrare: ['', Validators.required],
+      }),
+    );
+  }
+
+  // Ticking "prin agent" unlocks the row's Agent combobox (required from then on, as a
+  // disabled control isn't validated) and loads the agenti; unticking clears it again.
+  private withAgentToggle(row: FormGroup): FormGroup {
+    row.get('prinAgent')!.valueChanges.subscribe(() => this.syncAgentControl(row));
+    return row;
+  }
+
+  private syncAgentControl(row: FormGroup): void {
+    const idAgent = row.get('idAgent')!;
+    const prinAgent = row.get('prinAgent')!;
+    if (prinAgent.enabled && prinAgent.value) {
+      if (idAgent.disabled) idAgent.enable();
+      this.loadAgenti();
+    } else if (idAgent.enabled || idAgent.value != null) {
+      idAgent.reset({ value: null, disabled: true });
+    }
   }
 
   numeSolicitant(id: number): string {
@@ -310,6 +356,10 @@ export class ComandaComponent {
 
   numeFurnizor(id: number): string {
     return this.numeFurnizorById().get(id) ?? '';
+  }
+
+  numeAgent(id: number | null): string {
+    return id == null ? '' : (this.numeAgentById().get(id) ?? '');
   }
 
   private resetSolicitantGroups(): void {
@@ -329,6 +379,7 @@ export class ComandaComponent {
           idLucrare: row.idLucrare,
           idSolicitant: Number(v.idSolicitant),
           idFurnizor: Number(v.idFurnizor),
+          idAgent: v.prinAgent ? Number(v.idAgent) : null,
           numeMaterial: v.numeMaterial,
           cantitate: Number(v.cantitate),
           unitateMasura: v.unitateMasura,
@@ -465,6 +516,7 @@ export class ComandaComponent {
         idLucrare,
         idSolicitant: Number(solicitantGroup.get('idSolicitant')!.value),
         idFurnizor: Number(v.idFurnizor),
+        idAgent: v.prinAgent ? Number(v.idAgent) : null,
         numeMaterial: v.numeMaterial,
         cantitate: Number(v.cantitate),
         unitateMasura: v.unitateMasura,
@@ -562,6 +614,24 @@ export class ComandaComponent {
     });
   }
 
+  // Called whenever agenti might be needed; only the first call (or a retry after a
+  // failure) actually loads them.
+  private loadAgenti(): void {
+    if (this.isLoadingAgenti() || this.agentOptions().length > 0) return;
+
+    this.isLoadingAgenti.set(true);
+    this.agentService.getAll().subscribe({
+      next: (list) => {
+        this.agentOptions.set(list.map((a) => ({ value: a.id, label: a.numePrenume })));
+        this.isLoadingAgenti.set(false);
+      },
+      error: () => {
+        this.isLoadingAgenti.set(false);
+        this.errorMessage.set('Agenții nu au putut fi încărcați.');
+      },
+    });
+  }
+
   private loadComenzi(): void {
     this.isLoadingComenzi.set(true);
     this.comandaService.getAll().subscribe({
@@ -583,13 +653,14 @@ function labelsById(options: ComboOption[]): ReadonlyMap<number | string, string
 }
 
 // True when any field in the group (nested rows included) has a value the user entered.
+// An unticked checkbox (false) counts as empty.
 function hasFilledValue(control: FormGroup): boolean {
   const isFilled = (value: unknown): boolean =>
     Array.isArray(value)
       ? value.some(isFilled)
       : value !== null && typeof value === 'object'
         ? Object.values(value).some(isFilled)
-        : value != null && value !== '';
+        : value != null && value !== '' && value !== false;
   return isFilled(control.getRawValue());
 }
 

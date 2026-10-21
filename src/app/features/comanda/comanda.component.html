@@ -110,6 +110,7 @@
                   <th>Cantitate<span class="required-marker">*</span></th>
                   <th>U.M.<span class="required-marker">*</span></th>
                   <th>Furnizor<span class="required-marker">*</span></th>
+                  <th>Agent</th>
                   <th>Termen livrare<span class="required-marker">*</span></th>
                   <th></th>
                 </tr>
@@ -126,6 +127,11 @@
                       [loading]="isLoadingFurnizori()"
                       placeholder="Alege furnizorul"
                     ></app-combo-select>
+                  </td>
+                  <td>
+                    <ng-container
+                      *ngTemplateOutlet="agentCell; context: { $implicit: group }"
+                    ></ng-container>
                   </td>
                   <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
                   <td>
@@ -204,6 +210,7 @@
                     <th>Cantitate</th>
                     <th>U.M.</th>
                     <th>Furnizor</th>
+                    <th>Agent</th>
                     <th>Termen livrare</th>
                     <th>Recepționat</th>
                     <th></th>
@@ -229,6 +236,11 @@
                         [loading]="isLoadingFurnizori()"
                         placeholder="Alege furnizorul"
                       ></app-combo-select>
+                    </td>
+                    <td>
+                      <ng-container
+                        *ngTemplateOutlet="agentCell; context: { $implicit: group }"
+                      ></ng-container>
                     </td>
                     <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
                     <!-- Read-only here: the received quantity is only edited in Recepție Comandă. -->
@@ -259,6 +271,7 @@
                     <th>Cantitate</th>
                     <th>U.M.</th>
                     <th>Furnizor</th>
+                    <th>Agent</th>
                     <th>Termen livrare</th>
                     <th>Recepționat</th>
                     <th>Observații</th>
@@ -272,6 +285,7 @@
                       <td>{{ c.cantitate }}</td>
                       <td>{{ c.unitateMasura }}</td>
                       <td [title]="numeFurnizor(c.idFurnizor)">{{ numeFurnizor(c.idFurnizor) }}</td>
+                      <td [title]="numeAgent(c.idAgent)">{{ numeAgent(c.idAgent) }}</td>
                       <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                     </ng-container>
                     <td>
@@ -305,3 +319,22 @@
     </form>
   </div>
 </div>
+
+<!-- Agent cell, shared by the create table and the update grid: the "prin agent" checkbox
+     unlocks the combobox next to it (see syncAgentControl). -->
+<ng-template #agentCell let-row>
+  <div class="comanda__agent" [formGroup]="row">
+    <input
+      type="checkbox"
+      formControlName="prinAgent"
+      title="Comandă aprovizionată prin agent"
+      aria-label="Comandă aprovizionată prin agent"
+    />
+    <app-combo-select
+      formControlName="idAgent"
+      [options]="agentOptions()"
+      [loading]="isLoadingAgenti() && row.get('prinAgent')?.value"
+      [placeholder]="row.get('prinAgent')?.value ? 'Alege agentul' : 'Fără agent'"
+    ></app-combo-select>
+  </div>
+</ng-template>
