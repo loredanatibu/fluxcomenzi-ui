@@ -238,9 +238,9 @@
                         type="button"
                         class="comanda__row-remove"
                         (mousedown)="$event.preventDefault()"
-                        [disabled]="isSubmitting()"
+                        [disabled]="isSubmitting() || !canDeleteGridRow(i)"
                         (click)="deleteGridRow(i)"
-                        title="Șterge comanda"
+                        [title]="canDeleteGridRow(i) ? 'Șterge comanda' : 'Comenzile cu cantitate recepționată nu pot fi șterse'"
                         aria-label="Șterge comanda"
                       >
                         ×

@@ -228,10 +228,27 @@ export class ComandaComponent {
     this.focusAfterRender(`[data-solicitant="${index}"] app-combo-select input`);
   }
 
-  removeSolicitantGroup(index: number): void {
-    if (this.solicitantGroups.length > 1) {
-      this.solicitantGroups.removeAt(index);
+  async removeSolicitantGroup(index: number): Promise<void> {
+    if (this.solicitantGroups.length <= 1) return;
+
+    // Asks first only when there's something to lose -- an empty group just goes.
+    const group = this.solicitantGroups.at(index);
+    if (hasFilledValue(group)) {
+      const idSolicitant: number | null = group.get('idSolicitant')!.value;
+      const lineCount = this.rowsOf(group).length;
+      const confirmed = await this.confirmDialog.ask({
+        title: 'Elimini solicitantul?',
+        message: 'Solicitantul și toate liniile lui vor fi eliminate din comandă.',
+        subject: `${(idSolicitant != null && this.numeSolicitant(idSolicitant)) || `Solicitantul ${index + 1}`} · ${lineCount} ${lineCount === 1 ? 'linie' : 'linii'}`,
+        confirmText: 'Elimină',
+        variant: 'danger',
+      });
+      // The group may have moved while the dialog was open; remove it by identity.
+      if (!confirmed) return;
+      index = this.solicitantGroups.controls.indexOf(group);
+      if (index === -1) return;
     }
+    this.solicitantGroups.removeAt(index);
   }
 
   addCreateRow(groupIndex: number): void {
@@ -239,11 +256,28 @@ export class ComandaComponent {
     this.focusAfterRender(`[data-solicitant="${groupIndex}"] tbody tr:last-child input`);
   }
 
-  removeCreateRow(groupIndex: number, rowIndex: number): void {
+  async removeCreateRow(groupIndex: number, rowIndex: number): Promise<void> {
     const rows = this.rowsOf(this.solicitantGroups.at(groupIndex));
-    if (rows.length > 1) {
-      rows.removeAt(rowIndex);
+    if (rows.length <= 1) return;
+
+    // Asks first only when the line has something filled in -- an empty one just goes.
+    const row = rows.at(rowIndex);
+    if (hasFilledValue(row)) {
+      const v = row.getRawValue();
+      const confirmed = await this.confirmDialog.ask({
+        title: 'Elimini linia?',
+        message: 'Linia va fi eliminată din comandă.',
+        subject: [v.numeMaterial, v.cantitate != null ? `${v.cantitate} ${v.unitateMasura ?? ''}`.trim() : '']
+          .filter(Boolean)
+          .join(' · ') || `Linia ${rowIndex + 1}`,
+        confirmText: 'Elimină',
+        variant: 'danger',
+      });
+      if (!confirmed) return;
+      rowIndex = rows.controls.indexOf(row);
+      if (rowIndex === -1 || rows.length <= 1) return;
     }
+    rows.removeAt(rowIndex);
   }
 
   // Moves focus into the field just added, so the user can type straight away.
@@ -326,9 +360,16 @@ export class ComandaComponent {
     });
   }
 
+  // Only comenzi with nothing received yet can be deleted. Checks the saved value, so an
+  // unsaved edit in the Recepționat cell doesn't change it.
+  canDeleteGridRow(index: number): boolean {
+    const comanda = this.gridRows[index];
+    return comanda != null && !comanda.comandaReceptionata;
+  }
+
   async deleteGridRow(index: number): Promise<void> {
     const comanda = this.gridRows[index];
-    if (!comanda) return;
+    if (!comanda || !this.canDeleteGridRow(index)) return;
 
     const confirmed = await this.confirmDialog.ask({
       title: 'Ștergi comanda?',
@@ -539,6 +580,17 @@ export class ComandaComponent {
 
 function labelsById(options: ComboOption[]): ReadonlyMap<number | string, string> {
   return new Map(options.map((o) => [o.value, o.label]));
+}
+
+// True when any field in the group (nested rows included) has a value the user entered.
+function hasFilledValue(control: FormGroup): boolean {
+  const isFilled = (value: unknown): boolean =>
+    Array.isArray(value)
+      ? value.some(isFilled)
+      : value !== null && typeof value === 'object'
+        ? Object.values(value).some(isFilled)
+        : value != null && value !== '';
+  return isFilled(control.getRawValue());
 }
 
 // Oldest first; id breaks ties between comenzi created in the same instant (e.g. one save).
