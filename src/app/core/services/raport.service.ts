@@ -28,4 +28,9 @@ export class RaportService {
   getComenziPeAgenti(): Observable<ComandaTermenRaport[]> {
     return this.http.get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/pe-agenti`);
   }
+
+  // GET /api/comenzi/pe-agenti/{idAgent}/pdf -- sectiunea unui agent din raportul de mai sus, ca PDF.
+  getPdfAgent(idAgent: number): Observable<Blob> {
+    return this.http.get(`${this.config.apiUrl}/comenzi/pe-agenti/${idAgent}/pdf`, { responseType: 'blob' });
+  }
 }

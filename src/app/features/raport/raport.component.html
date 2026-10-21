@@ -51,11 +51,22 @@
 
           <!-- Comenzi pe agenți: one block per agent, rows grouped under obiectiv · lucrare. -->
           <ng-container *ngIf="activeReport() === 'pe-agenti' && rows().length > 0">
+            <p *ngIf="pdfError()" class="raport__error raport__pdf-error">{{ pdfError() }}</p>
+
             <section *ngFor="let section of agentSections()" class="raport__agent">
               <header class="raport__agent-header">
                 <h3 class="raport__agent-name">{{ section.agent.numePrenume }}</h3>
                 <span *ngIf="section.agent.telefon" class="raport__agent-contact">{{ section.agent.telefon }}</span>
                 <span *ngIf="section.agent.email" class="raport__agent-contact">{{ section.agent.email }}</span>
+                <button
+                  type="button"
+                  class="raport__pdf-button"
+                  [disabled]="pdfAgentId() != null"
+                  (click)="downloadPdf(section.agent)"
+                  [title]="'Descarcă PDF cu comenzile lui ' + section.agent.numePrenume"
+                >
+                  {{ pdfAgentId() === section.agent.id ? 'Se generează...' : 'Descarcă PDF' }}
+                </button>
               </header>
 
               <div class="raport__table-scroll">

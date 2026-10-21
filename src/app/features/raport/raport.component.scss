@@ -188,6 +188,33 @@
   color: var(--color-text-muted);
 }
 
+// Pushed to the right end of the agent's header line.
+.raport__pdf-button {
+  margin-left: auto;
+  align-self: center;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: rgb(46, 111, 158);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    border-color: rgb(46, 111, 158);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.raport__pdf-error {
+  margin-bottom: 0.75rem;
+}
+
 // Material, Cant., U.M., Furnizor, Termen livrare, Recepționat -- replaces the
 // 10-column widths of the other reports.
 .raport__table--agenti {
