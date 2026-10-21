@@ -21,6 +21,14 @@
       >
         Comenzi de livrat în 3 zile
       </button>
+      <button
+        type="button"
+        class="raport__menu-item"
+        [class.raport__menu-item--active]="activeReport() === 'pe-agenti'"
+        (click)="selectReport('pe-agenti')"
+      >
+        Comenzi pe agenți
+      </button>
     </nav>
 
     <div class="raport__content" [class.raport__content--empty]="!activeReport()">
@@ -35,11 +43,54 @@
             {{
               activeReport() === 'nelivrate'
                 ? 'Nu există comenzi nelivrate cu termenul depășit.'
-                : 'Nu există comenzi de livrat în următoarele 3 zile lucrătoare.'
+                : activeReport() === 'pe-agenti'
+                  ? 'Nu există comenzi aprovizionate prin agent.'
+                  : 'Nu există comenzi de livrat în următoarele 3 zile lucrătoare.'
             }}
           </p>
 
-          <div *ngIf="rows().length > 0" class="raport__table-scroll">
+          <!-- Comenzi pe agenți: one block per agent, rows grouped under obiectiv · lucrare. -->
+          <ng-container *ngIf="activeReport() === 'pe-agenti' && rows().length > 0">
+            <section *ngFor="let section of agentSections()" class="raport__agent">
+              <header class="raport__agent-header">
+                <h3 class="raport__agent-name">{{ section.agent.numePrenume }}</h3>
+                <span *ngIf="section.agent.telefon" class="raport__agent-contact">{{ section.agent.telefon }}</span>
+                <span *ngIf="section.agent.email" class="raport__agent-contact">{{ section.agent.email }}</span>
+              </header>
+
+              <div class="raport__table-scroll">
+                <table class="raport__table raport__table--agenti">
+                  <thead>
+                    <tr>
+                      <th>Material</th>
+                      <th title="Cantitate">Cant.</th>
+                      <th>U.M.</th>
+                      <th>Furnizor</th>
+                      <th>Termen livrare</th>
+                      <th title="Recepționată">Recepționat</th>
+                    </tr>
+                  </thead>
+                  <tbody *ngFor="let group of section.lucrari">
+                    <tr class="raport__group-row">
+                      <td colspan="6" [title]="group.obiectiv + ' · ' + group.lucrare">
+                        {{ group.obiectiv }} · {{ group.lucrare }}
+                      </td>
+                    </tr>
+                    <tr *ngFor="let row of group.rows">
+                      <td [title]="row.comanda.numeMaterial">{{ row.comanda.numeMaterial }}</td>
+                      <td>{{ row.comanda.cantitate }}</td>
+                      <td>{{ row.comanda.unitateMasura }}</td>
+                      <td [title]="row.furnizor?.nume ?? ''">{{ row.furnizor?.nume }}</td>
+                      <td>{{ row.comanda.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
+                      <td>{{ row.comanda.comandaReceptionata }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          </ng-container>
+
+          <div *ngIf="activeReport() !== 'pe-agenti' && rows().length > 0" class="raport__table-scroll">
             <table class="raport__table">
               <thead>
                 <tr>

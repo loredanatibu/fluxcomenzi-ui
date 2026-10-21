@@ -158,6 +158,74 @@
   }
 }
 
+// Comenzi pe agenți: one block per agent, stacked.
+.raport__agent + .raport__agent {
+  margin-top: 1.75rem;
+}
+
+.raport__agent-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.raport__agent-name {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+.raport__agent-contact {
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+// Material, Cant., U.M., Furnizor, Termen livrare, Recepționat -- replaces the
+// 10-column widths of the other reports.
+.raport__table--agenti {
+  th:nth-child(n),
+  td:nth-child(n) {
+    width: auto;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 30%;
+  }
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 9%;
+  }
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 8%;
+  }
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 25%;
+  }
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 16%;
+  }
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 12%;
+  }
+
+  // Obiectiv · Lucrare heading above its rows.
+  .raport__group-row td {
+    padding-top: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+  }
+}
+
 .raport__error {
   margin: 0;
   color: var(--color-danger);

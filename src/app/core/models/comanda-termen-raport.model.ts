@@ -1,3 +1,4 @@
+import { Agent } from './agent.model';
 import { Comanda } from './comanda.model';
 import { Furnizor } from './furnizor.model';
 import { Solicitant } from './solicitant.model';
@@ -11,4 +12,6 @@ export interface ComandaTermenRaport {
   obiectiv: { idObiectiv: number; nume: string };
   solicitant: Solicitant | null;
   furnizor: Furnizor | null;
+  // Null when the comanda isn't supplied through an agent.
+  agent: Agent | null;
 }

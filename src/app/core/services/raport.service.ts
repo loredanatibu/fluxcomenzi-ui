@@ -22,4 +22,10 @@ export class RaportService {
   getComenziNelivrate(): Observable<ComandaTermenRaport[]> {
     return this.http.get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/nelivrate`);
   }
+
+  // GET /api/comenzi/pe-agenti -- toate comenzile aprovizionate prin agent, indiferent de
+  // termenul de livrare sau de receptie, fiecare cu agentul, lucrarea si obiectivul.
+  getComenziPeAgenti(): Observable<ComandaTermenRaport[]> {
+    return this.http.get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/pe-agenti`);
+  }
 }

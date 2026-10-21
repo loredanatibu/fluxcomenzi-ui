@@ -1,10 +1,24 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Observable } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { RaportService } from '../../core/services/raport.service';
 import { ComandaTermenRaport } from '../../core/models/comanda-termen-raport.model';
+import { Agent } from '../../core/models/agent.model';
 
-type RaportType = 'nelivrate' | 'termen-3-zile';
+type RaportType = 'nelivrate' | 'termen-3-zile' | 'pe-agenti';
+
+// Comenzi pe agenti: one section per agent, its rows split by obiectiv + lucrare.
+interface AgentSection {
+  agent: Agent;
+  lucrari: LucrareSection[];
+}
+
+interface LucrareSection {
+  obiectiv: string;
+  lucrare: string;
+  rows: ComandaTermenRaport[];
+}
 
 @Component({
   selector: 'app-rapoarte',
@@ -21,6 +35,34 @@ export class RaportComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly rows = signal<ComandaTermenRaport[]>([]);
 
+  // Agents by name; within each, obiectiv then lucrare by name, rows by delivery deadline
+  // (the order the backend already returns them in).
+  readonly agentSections = computed<AgentSection[]>(() => {
+    const byAgent = new Map<number, AgentSection>();
+    for (const row of this.rows()) {
+      if (!row.agent) continue;
+      let section = byAgent.get(row.agent.id);
+      if (!section) {
+        section = { agent: row.agent, lucrari: [] };
+        byAgent.set(row.agent.id, section);
+      }
+      const obiectiv = row.obiectiv?.nume ?? '';
+      const lucrare = row.lucrare?.nume ?? '';
+      let lucrareSection = section.lucrari.find((l) => l.obiectiv === obiectiv && l.lucrare === lucrare);
+      if (!lucrareSection) {
+        lucrareSection = { obiectiv, lucrare, rows: [] };
+        section.lucrari.push(lucrareSection);
+      }
+      lucrareSection.rows.push(row);
+    }
+
+    const sections = [...byAgent.values()].sort((a, b) => compareText(a.agent.numePrenume, b.agent.numePrenume));
+    for (const section of sections) {
+      section.lucrari.sort((a, b) => compareText(a.obiectiv, b.obiectiv) || compareText(a.lucrare, b.lucrare));
+    }
+    return sections;
+  });
+
   constructor(readonly authService: AuthService) {}
 
   selectReport(report: RaportType): void {
@@ -33,10 +75,12 @@ export class RaportComponent {
   }
 
   private loadReport(report: RaportType): void {
-    const request =
-      report === 'nelivrate'
-        ? this.raportService.getComenziNelivrate()
-        : this.raportService.getComenziTermen3ZileLucratoare();
+    const requests: Record<RaportType, () => Observable<ComandaTermenRaport[]>> = {
+      nelivrate: () => this.raportService.getComenziNelivrate(),
+      'termen-3-zile': () => this.raportService.getComenziTermen3ZileLucratoare(),
+      'pe-agenti': () => this.raportService.getComenziPeAgenti(),
+    };
+    const request = requests[report]();
 
     this.isLoading.set(true);
     request.subscribe({
@@ -53,4 +97,8 @@ export class RaportComponent {
       },
     });
   }
+}
+
+function compareText(a: string, b: string): number {
+  return a.localeCompare(b, 'ro', { sensitivity: 'base' });
 }
