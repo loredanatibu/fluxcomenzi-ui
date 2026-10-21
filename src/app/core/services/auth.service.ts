@@ -6,16 +6,16 @@ import { RuntimeConfigService } from './runtime-config.service';
 import { LoginRequest, TokenResponse } from '../models/auth.model';
 
 const TOKEN_KEY = 'fluxcomenzi_token';
-const EMAIL_KEY = 'fluxcomenzi_email';
+const USERNAME_KEY = 'fluxcomenzi_username';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly tokenSignal = signal<string | null>(localStorage.getItem(TOKEN_KEY));
-  private readonly emailSignal = signal<string | null>(localStorage.getItem(EMAIL_KEY));
+  private readonly usernameSignal = signal<string | null>(localStorage.getItem(USERNAME_KEY));
   private readonly loginErrorSignal = signal<string | null>(null);
 
   readonly isAuthenticated = computed(() => this.tokenSignal() !== null);
-  readonly currentEmail = computed(() => this.emailSignal());
+  readonly currentUsername = computed(() => this.usernameSignal());
   readonly loginError = this.loginErrorSignal.asReadonly();
 
   constructor(
@@ -24,14 +24,14 @@ export class AuthService {
     private readonly router: Router,
   ) {}
 
-  login(email: string, password: string): Observable<TokenResponse> {
-    const body: LoginRequest = { email, password };
+  login(username: string, password: string): Observable<TokenResponse> {
+    const body: LoginRequest = { username, password };
     return this.http.post<TokenResponse>(`${this.config.apiUrl}/auth/login`, body).pipe(
       tap((response) => {
         localStorage.setItem(TOKEN_KEY, response.token);
-        localStorage.setItem(EMAIL_KEY, email);
+        localStorage.setItem(USERNAME_KEY, username);
         this.tokenSignal.set(response.token);
-        this.emailSignal.set(email);
+        this.usernameSignal.set(username);
         this.loginErrorSignal.set(null);
       }),
     );
@@ -39,9 +39,9 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(USERNAME_KEY);
     this.tokenSignal.set(null);
-    this.emailSignal.set(null);
+    this.usernameSignal.set(null);
     this.router.navigate(['/']);
   }
 
@@ -69,9 +69,9 @@ export class AuthService {
       return;
     }
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(EMAIL_KEY);
+    localStorage.removeItem(USERNAME_KEY);
     this.tokenSignal.set(null);
-    this.emailSignal.set(null);
+    this.usernameSignal.set(null);
     this.loginErrorSignal.set('Sesiunea a expirat. Te rugăm să te autentifici din nou.');
     this.router.navigate(['/']);
   }

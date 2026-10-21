@@ -50,8 +50,8 @@
                   <td [title]="row.comanda.numeMaterial">{{ row.comanda.numeMaterial }}</td>
                   <td>{{ row.comanda.cantitate }}</td>
                   <td>{{ row.comanda.unitateMasura }}</td>
-                  <td [title]="row.comanda.numeFurnizor">{{ row.comanda.numeFurnizor }}</td>
-                  <td [title]="row.comanda.emailFurnizor">{{ row.comanda.emailFurnizor }}</td>
+                  <td [title]="row.furnizor?.nume ?? ''">{{ row.furnizor?.nume }}</td>
+                  <td [title]="row.furnizor?.email ?? ''">{{ row.furnizor?.email }}</td>
                   <td>{{ row.comanda.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                   <td>{{ row.comanda.comandaReceptionata }}</td>
                   <td [title]="row.comanda.observatii">{{ row.comanda.observatii }}</td>

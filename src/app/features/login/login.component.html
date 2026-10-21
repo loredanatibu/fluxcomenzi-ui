@@ -1,7 +1,7 @@
 <form class="login" [formGroup]="form" (ngSubmit)="submit()">
   <label class="login__field">
     <span>User</span>
-    <input type="email" formControlName="email" autocomplete="username" />
+    <input type="text" formControlName="username" autocomplete="username" autocapitalize="off" spellcheck="false" />
   </label>
 
   <label class="login__field">

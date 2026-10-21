@@ -70,7 +70,7 @@
             <label class="comanda__field comanda__field--narrow">
               <span>Solicitant<span class="required-marker">*</span></span>
               <app-combo-select
-                formControlName="requestedBy"
+                formControlName="idSolicitant"
                 [options]="solicitantOptions()"
                 [loading]="isLoadingSolicitanti()"
                 placeholder="Alege solicitantul"
@@ -121,7 +121,7 @@
                   <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
                   <td>
                     <app-combo-select
-                      formControlName="numeFurnizor"
+                      formControlName="idFurnizor"
                       [options]="furnizorOptions()"
                       [loading]="isLoadingFurnizori()"
                       placeholder="Alege furnizorul"
@@ -213,8 +213,8 @@
                   <tr *ngFor="let group of gridForm.controls; let i = index" [formGroup]="group">
                     <td>
                       <app-combo-select
-                        formControlName="requestedBy"
-                        [options]="gridSolicitantOptions()"
+                        formControlName="idSolicitant"
+                        [options]="solicitantOptions()"
                         [loading]="isLoadingSolicitanti()"
                         placeholder="Alege solicitantul"
                       ></app-combo-select>
@@ -224,11 +224,10 @@
                     <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
                     <td>
                       <app-combo-select
-                        formControlName="numeFurnizor"
-                        [options]="gridFurnizorOptions()"
+                        formControlName="idFurnizor"
+                        [options]="furnizorOptions()"
                         [loading]="isLoadingFurnizori()"
                         placeholder="Alege furnizorul"
-                        (valueChange)="onFurnizorSelected(group, $event)"
                       ></app-combo-select>
                     </td>
                     <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
@@ -268,11 +267,11 @@
                 <tbody>
                   <tr *ngFor="let group of gridForm.controls; let i = index" [formGroup]="group">
                     <ng-container *ngIf="gridRows[i] as c">
-                      <td [title]="c.requestedBy">{{ c.requestedBy }}</td>
+                      <td [title]="numeSolicitant(c.idSolicitant)">{{ numeSolicitant(c.idSolicitant) }}</td>
                       <td [title]="c.numeMaterial">{{ c.numeMaterial }}</td>
                       <td>{{ c.cantitate }}</td>
                       <td>{{ c.unitateMasura }}</td>
-                      <td [title]="c.numeFurnizor">{{ c.numeFurnizor }}</td>
+                      <td [title]="numeFurnizor(c.idFurnizor)">{{ numeFurnizor(c.idFurnizor) }}</td>
                       <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                     </ng-container>
                     <td><input type="number" formControlName="comandaReceptionata" step="0.001" min="0" /></td>

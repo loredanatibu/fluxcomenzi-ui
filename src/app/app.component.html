@@ -13,7 +13,7 @@
 
   <footer *ngIf="authService.isAuthenticated()" class="shell__footer">
     <div class="shell__user">
-      <span>{{ authService.currentEmail() }}</span>
+      <span>{{ authService.currentUsername() }}</span>
       <button type="button" (click)="authService.logout()">Logout</button>
     </div>
   </footer>

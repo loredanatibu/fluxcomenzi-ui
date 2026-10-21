@@ -6,15 +6,14 @@ import { Comanda } from '../models/comanda.model';
 
 export interface ComandaPayload {
   idLucrare: number;
+  idSolicitant: number;
+  idFurnizor: number;
   numeMaterial: string;
   cantitate: number;
   unitateMasura: string;
-  numeFurnizor: string;
-  emailFurnizor: string;
   termenLivrare: string;
   comandaReceptionata: number;
   observatii: string;
-  requestedBy: string;
 }
 
 @Injectable({ providedIn: 'root' })

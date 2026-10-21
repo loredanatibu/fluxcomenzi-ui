@@ -1,5 +1,5 @@
 // Mirrors com.mep.fluxcomenzi.model.Furnizor -- lookup list behind the Furnizor
-// combobox. A comanda stores the chosen nume in numeFurnizor.
+// combobox. A comanda references the chosen one by id (idFurnizor).
 export interface Furnizor {
   id: number;
   nume: string;

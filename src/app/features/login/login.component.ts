@@ -18,7 +18,7 @@ export class LoginComponent {
   readonly isSubmitting = signal(false);
 
   readonly form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    username: ['', Validators.required],
     password: ['', Validators.required],
   });
 
@@ -28,11 +28,11 @@ export class LoginComponent {
       return;
     }
 
-    const { email, password } = this.form.getRawValue();
+    const { username, password } = this.form.getRawValue();
     this.authService.reportLoginError(null);
     this.isSubmitting.set(true);
 
-    this.authService.login(email!, password!).subscribe({
+    this.authService.login(username!.trim(), password!).subscribe({
       next: () => this.isSubmitting.set(false),
       error: () => {
         this.isSubmitting.set(false);

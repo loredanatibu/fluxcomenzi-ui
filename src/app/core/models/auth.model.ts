@@ -1,6 +1,6 @@
 // Matches AuthDtos.LoginRequest / TokenResponse in fluxcomenzi-api.
 export interface LoginRequest {
-  email: string;
+  username: string;
   password: string;
 }
 

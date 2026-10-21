@@ -8,7 +8,6 @@ import { ComandaService, ComandaPayload } from '../../core/services/comanda.serv
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { SolicitantService } from '../../core/services/solicitant.service';
 import { FurnizorService } from '../../core/services/furnizor.service';
-import { Furnizor } from '../../core/models/furnizor.model';
 import { Comanda } from '../../core/models/comanda.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
@@ -21,7 +20,7 @@ const REQUIRED_ROW_LABELS: Record<string, string> = {
   numeMaterial: 'Nume material',
   cantitate: 'Cantitate',
   unitateMasura: 'Unitate măsură',
-  numeFurnizor: 'Nume furnizor',
+  idFurnizor: 'Furnizor',
   termenLivrare: 'Termen livrare',
 };
 
@@ -64,32 +63,22 @@ export class ComandaComponent {
   readonly isGridMode = computed(() => this.mode() === 'update' || this.mode() === 'receptie');
   gridRows: Comanda[] = [];
 
-  // Create mode: comenzi are grouped by solicitant -- each group is { requestedBy, rows },
+  // Create mode: comenzi are grouped by solicitant -- each group is { idSolicitant, rows },
   // with one FormGroup per new comanda in rows, all saved under the selected lucrare.
   // Disabled until a Lucrare is picked; "Adaugă linie" appends a row to its own group,
   // "Adaugă solicitant" appends another group.
   readonly solicitantGroups = new FormArray<FormGroup>([this.newSolicitantGroup()]);
 
-  // Loaded once, up front: the Solicitant combobox options shared by every group.
-  // requestedBy stores numePrenume (no FK -- see solicitanti in schema.sql), so that's the value.
+  // Loaded once, up front: the Solicitant/Furnizor combobox options for every group/row.
+  // A comanda references both by id (FKs -- see comenzi in schema.sql), so the option
+  // value is the id and the label the name; the label maps also name them in Recepție.
   readonly solicitantOptions = signal<ComboOption[]>([]);
   readonly isLoadingSolicitanti = signal(false);
-
-  // Loaded once, up front, like solicitanti: the Furnizor combobox options for every row.
-  // numeFurnizor stores the furnizor's nume as text, so that's the value.
-  private furnizori: Furnizor[] = [];
   readonly furnizorOptions = signal<ComboOption[]>([]);
   readonly isLoadingFurnizori = signal(false);
 
-  // Update grid: older comenzi may hold a solicitant/furnizor typed by hand before the
-  // lookup lists existed. Their value is added as an extra option so the combobox still
-  // shows it instead of going blank.
-  readonly gridSolicitantOptions = computed(() =>
-    withExtraValues(this.solicitantOptions(), this.filteredComenzi().map((c) => c.requestedBy)),
-  );
-  readonly gridFurnizorOptions = computed(() =>
-    withExtraValues(this.furnizorOptions(), this.filteredComenzi().map((c) => c.numeFurnizor)),
-  );
+  private readonly numeSolicitantById = computed(() => labelsById(this.solicitantOptions()));
+  private readonly numeFurnizorById = computed(() => labelsById(this.furnizorOptions()));
 
   // Every mode: Obiectiv is picked first (from /obiective/cu-lucrari), which then scopes
   // which lucrari are selectable (in create, before the rows become editable; in update
@@ -181,12 +170,11 @@ export class ComandaComponent {
       this.gridForm.push(
         dirtyById.get(c.id) ??
           this.fb.group({
-            requestedBy: [c.requestedBy],
+            idSolicitant: [c.idSolicitant, Validators.required],
             numeMaterial: [c.numeMaterial],
             cantitate: [c.cantitate],
             unitateMasura: [c.unitateMasura],
-            numeFurnizor: [c.numeFurnizor],
-            emailFurnizor: [c.emailFurnizor],
+            idFurnizor: [c.idFurnizor, Validators.required],
             termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
             comandaReceptionata: [c.comandaReceptionata, [Validators.required, Validators.min(0)]],
             observatii: [c.observatii],
@@ -208,7 +196,7 @@ export class ComandaComponent {
   // one fully filled-in material. Disabled groups (no lucrare yet) count as not ready.
   canAddSolicitant(): boolean {
     return this.solicitantGroups.controls.every(
-      (group) => group.get('requestedBy')!.valid && this.rowsOf(group).controls.some((row) => row.valid),
+      (group) => group.get('idSolicitant')!.valid && this.rowsOf(group).controls.some((row) => row.valid),
     );
   }
 
@@ -245,7 +233,7 @@ export class ComandaComponent {
 
   private newSolicitantGroup(): FormGroup {
     return this.fb.group({
-      requestedBy: [null as string | null, Validators.required],
+      idSolicitant: [null as number | null, Validators.required],
       rows: this.fb.array<FormGroup>([this.newCreateRow()]),
     });
   }
@@ -255,22 +243,17 @@ export class ComandaComponent {
       numeMaterial: ['', Validators.required],
       cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
       unitateMasura: ['', Validators.required],
-      numeFurnizor: [null as string | null, Validators.required],
+      idFurnizor: [null as number | null, Validators.required],
       termenLivrare: ['', Validators.required],
     });
   }
 
-  // Update grid: there's no email column, so picking a different furnizor brings its
-  // email along in the row's (hidden) emailFurnizor value.
-  onFurnizorSelected(row: FormGroup, nume: number | string | null): void {
-    const email = this.furnizorEmail(nume);
-    if (email) {
-      row.get('emailFurnizor')!.setValue(email);
-    }
+  numeSolicitant(id: number): string {
+    return this.numeSolicitantById().get(id) ?? '';
   }
 
-  private furnizorEmail(nume: number | string | null): string | null {
-    return this.furnizori.find((f) => f.nume === nume)?.email ?? null;
+  numeFurnizor(id: number): string {
+    return this.numeFurnizorById().get(id) ?? '';
   }
 
   private resetSolicitantGroups(): void {
@@ -288,15 +271,14 @@ export class ComandaComponent {
         const v = group.getRawValue();
         const payload: ComandaPayload = {
           idLucrare: row.idLucrare,
+          idSolicitant: Number(v.idSolicitant),
+          idFurnizor: Number(v.idFurnizor),
           numeMaterial: v.numeMaterial,
           cantitate: Number(v.cantitate),
           unitateMasura: v.unitateMasura,
-          numeFurnizor: v.numeFurnizor,
-          emailFurnizor: v.emailFurnizor,
           termenLivrare: v.termenLivrare,
           comandaReceptionata: Number(v.comandaReceptionata),
           observatii: v.observatii ?? '',
-          requestedBy: v.requestedBy ?? '',
         };
         return this.comandaService.update(row.id, payload);
       });
@@ -401,16 +383,14 @@ export class ComandaComponent {
       const v = row.getRawValue();
       const payload: ComandaPayload = {
         idLucrare,
+        idSolicitant: Number(solicitantGroup.get('idSolicitant')!.value),
+        idFurnizor: Number(v.idFurnizor),
         numeMaterial: v.numeMaterial,
         cantitate: Number(v.cantitate),
         unitateMasura: v.unitateMasura,
-        numeFurnizor: v.numeFurnizor,
-        // No email field in create: it comes from the picked furnizor's record.
-        emailFurnizor: this.furnizorEmail(v.numeFurnizor) ?? '',
         termenLivrare: v.termenLivrare,
         comandaReceptionata: 0,
         observatii: '',
-        requestedBy: solicitantGroup.get('requestedBy')!.value,
       };
       return this.comandaService.create(payload).pipe(
         map(() => true),
@@ -444,9 +424,9 @@ export class ComandaComponent {
   // First problem in the create form, as a message naming the solicitant and line, or null.
   private findInvalidCreateMessage(): string | null {
     for (const [g, solicitantGroup] of this.solicitantGroups.controls.entries()) {
-      const nume: string | null = solicitantGroup.get('requestedBy')!.value;
-      const label = nume || `Solicitantul ${g + 1}`;
-      if (solicitantGroup.get('requestedBy')!.invalid) {
+      const idSolicitant: number | null = solicitantGroup.get('idSolicitant')!.value;
+      const label = (idSolicitant != null && this.numeSolicitant(idSolicitant)) || `Solicitantul ${g + 1}`;
+      if (solicitantGroup.get('idSolicitant')!.invalid) {
         return `${label}: Alege solicitantul.`;
       }
       const rows = this.rowsOf(solicitantGroup);
@@ -478,7 +458,7 @@ export class ComandaComponent {
     this.isLoadingSolicitanti.set(true);
     this.solicitantService.getAll().subscribe({
       next: (list) => {
-        this.solicitantOptions.set(list.map((s) => ({ value: s.numePrenume, label: s.numePrenume })));
+        this.solicitantOptions.set(list.map((s) => ({ value: s.id, label: s.numePrenume })));
         this.isLoadingSolicitanti.set(false);
       },
       error: () => {
@@ -492,8 +472,7 @@ export class ComandaComponent {
     this.isLoadingFurnizori.set(true);
     this.furnizorService.getAll().subscribe({
       next: (list) => {
-        this.furnizori = list;
-        this.furnizorOptions.set(list.map((f) => ({ value: f.nume, label: f.nume })));
+        this.furnizorOptions.set(list.map((f) => ({ value: f.id, label: f.nume })));
         this.isLoadingFurnizori.set(false);
       },
       error: () => {
@@ -518,10 +497,8 @@ export class ComandaComponent {
   }
 }
 
-function withExtraValues(options: ComboOption[], values: string[]): ComboOption[] {
-  const known = new Set(options.map((o) => o.value));
-  const extra = [...new Set(values)].filter((v) => v && !known.has(v)).map((v) => ({ value: v, label: v }));
-  return extra.length > 0 ? [...options, ...extra] : options;
+function labelsById(options: ComboOption[]): ReadonlyMap<number | string, string> {
+  return new Map(options.map((o) => [o.value, o.label]));
 }
 
 function toDateTimeInputValue(value: string | null | undefined): string {
