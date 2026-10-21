@@ -11,9 +11,15 @@ export class RaportService {
     private readonly config: RuntimeConfigService,
   ) {}
 
-  // GET /api/comenzi/termen-3-zile-lucratoare -- comenzile cu termen de livrare
-  // in urmatoarele 3 zile lucratoare, fiecare cu lucrarea si obiectivul aferent.
+  // GET /api/comenzi/termen-3-zile-lucratoare -- comenzile nereceptionate integral, cu termen
+  // de livrare inca nedepasit dar in urmatoarele 3 zile lucratoare, fiecare cu lucrarea si
+  // obiectivul aferent.
   getComenziTermen3ZileLucratoare(): Observable<ComandaTermenRaport[]> {
     return this.http.get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/termen-3-zile-lucratoare`);
+  }
+
+  // GET /api/comenzi/nelivrate -- comenzile nereceptionate integral, cu termenul de livrare depasit.
+  getComenziNelivrate(): Observable<ComandaTermenRaport[]> {
+    return this.http.get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/nelivrate`);
   }
 }

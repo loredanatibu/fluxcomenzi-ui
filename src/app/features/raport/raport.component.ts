@@ -4,7 +4,7 @@ import { AuthService } from '../../core/services/auth.service';
 import { RaportService } from '../../core/services/raport.service';
 import { ComandaTermenRaport } from '../../core/models/comanda-termen-raport.model';
 
-type RaportType = 'termen-3-zile';
+type RaportType = 'nelivrate' | 'termen-3-zile';
 
 @Component({
   selector: 'app-rapoarte',
@@ -29,17 +29,25 @@ export class RaportComponent {
     this.activeReport.set(report);
     this.errorMessage.set(null);
     this.rows.set([]);
-    this.loadTermen3Zile();
+    this.loadReport(report);
   }
 
-  private loadTermen3Zile(): void {
+  private loadReport(report: RaportType): void {
+    const request =
+      report === 'nelivrate'
+        ? this.raportService.getComenziNelivrate()
+        : this.raportService.getComenziTermen3ZileLucratoare();
+
     this.isLoading.set(true);
-    this.raportService.getComenziTermen3ZileLucratoare().subscribe({
+    request.subscribe({
       next: (list) => {
+        // A slower response for a report the user already switched away from is dropped.
+        if (this.activeReport() !== report) return;
         this.rows.set(list);
         this.isLoading.set(false);
       },
       error: () => {
+        if (this.activeReport() !== report) return;
         this.isLoading.set(false);
         this.errorMessage.set('Raportul nu a putut fi încărcat.');
       },

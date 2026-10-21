@@ -8,6 +8,14 @@
       <button
         type="button"
         class="raport__menu-item"
+        [class.raport__menu-item--active]="activeReport() === 'nelivrate'"
+        (click)="selectReport('nelivrate')"
+      >
+        Comenzi nelivrate
+      </button>
+      <button
+        type="button"
+        class="raport__menu-item"
         [class.raport__menu-item--active]="activeReport() === 'termen-3-zile'"
         (click)="selectReport('termen-3-zile')"
       >
@@ -24,7 +32,11 @@
 
         <ng-container *ngIf="!isLoading() && !errorMessage()">
           <p *ngIf="rows().length === 0" class="raport__hint">
-            Nu există comenzi de livrat în următoarele 3 zile lucrătoare.
+            {{
+              activeReport() === 'nelivrate'
+                ? 'Nu există comenzi nelivrate cu termenul depășit.'
+                : 'Nu există comenzi de livrat în următoarele 3 zile lucrătoare.'
+            }}
           </p>
 
           <div *ngIf="rows().length > 0" class="raport__table-scroll">
