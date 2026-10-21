@@ -525,7 +525,8 @@ export class ComandaComponent {
     this.isLoadingComenzi.set(true);
     this.comandaService.getAll().subscribe({
       next: (list) => {
-        this.comenzi.set(list);
+        // The server's order shifts after updates; a fixed creation order keeps rows in place.
+        this.comenzi.set([...list].sort(byCreatedAt));
         this.isLoadingComenzi.set(false);
       },
       error: () => {
@@ -538,6 +539,12 @@ export class ComandaComponent {
 
 function labelsById(options: ComboOption[]): ReadonlyMap<number | string, string> {
   return new Map(options.map((o) => [o.value, o.label]));
+}
+
+// Oldest first; id breaks ties between comenzi created in the same instant (e.g. one save).
+function byCreatedAt(a: Comanda, b: Comanda): number {
+  const diff = (Date.parse(a.createdAt) || 0) - (Date.parse(b.createdAt) || 0);
+  return diff !== 0 ? diff : a.id - b.id;
 }
 
 function toDateTimeInputValue(value: string | null | undefined): string {
