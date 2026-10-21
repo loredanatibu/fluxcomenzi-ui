@@ -42,6 +42,7 @@ export class ComandaComponent {
   readonly isSubmitting = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
+  readonly receptionatError = signal<string | null>(null);
 
   readonly comenzi = signal<Comanda[]>([]);
   readonly isLoadingComenzi = signal(false);
@@ -188,6 +189,25 @@ export class ComandaComponent {
     if (!this.gridForm.controls.some((group) => group.dirty)) {
       this.gridForm.markAsPristine();
     }
+  }
+
+  // Recepție: more can't be received than was ordered. Same treatment as the obiectiv date
+  // range -- the offending value is cleared and the message stays until the next edit.
+  validateReceptionat(index: number): void {
+    const comanda = this.gridRows[index];
+    const control = this.gridForm.at(index)?.get('comandaReceptionata');
+    if (!comanda || !control) return;
+
+    const receptionat = control.value;
+    if (receptionat == null || receptionat === '' || Number(receptionat) <= comanda.cantitate) {
+      this.receptionatError.set(null);
+      return;
+    }
+
+    this.receptionatError.set(
+      `${comanda.numeMaterial}: cantitatea recepționată nu poate fi mai mare decât cantitatea comandată (${comanda.cantitate} ${comanda.unitateMasura}).`,
+    );
+    control.setValue(null);
   }
 
   rowsOf(group: FormGroup): FormArray<FormGroup> {
@@ -362,6 +382,7 @@ export class ComandaComponent {
     const mode = this.mode();
     this.errorMessage.set(null);
     this.successMessage.set(null);
+    this.receptionatError.set(null);
     this.selectedLucrareId.set(null);
     this.selectedIdObiectiv.set(null);
     this.form.reset();

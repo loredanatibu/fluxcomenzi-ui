@@ -117,7 +117,7 @@
               <tbody>
                 <tr *ngFor="let group of rowsOf(solicitantGroup).controls; let i = index" [formGroup]="group">
                   <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
-                  <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
+                  <td><input type="number" formControlName="cantitate" step="1" min="0" /></td>
                   <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
                   <td>
                     <app-combo-select
@@ -220,7 +220,7 @@
                       ></app-combo-select>
                     </td>
                     <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
-                    <td><input type="number" formControlName="cantitate" step="0.001" min="0" /></td>
+                    <td><input type="number" formControlName="cantitate" step="1" min="0" /></td>
                     <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
                     <td>
                       <app-combo-select
@@ -274,7 +274,15 @@
                       <td [title]="numeFurnizor(c.idFurnizor)">{{ numeFurnizor(c.idFurnizor) }}</td>
                       <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                     </ng-container>
-                    <td><input type="number" formControlName="comandaReceptionata" step="0.001" min="0" /></td>
+                    <td>
+                      <input
+                        type="number"
+                        formControlName="comandaReceptionata"
+                        step="1"
+                        min="0"
+                        (input)="validateReceptionat(i)"
+                      />
+                    </td>
                     <td>
                       <textarea
                         class="comanda__table-observatii"
@@ -287,6 +295,10 @@
                 </tbody>
               </table>
             </div>
+
+            <p *ngIf="mode() === 'receptie' && receptionatError()" class="comanda__field-error">
+              {{ receptionatError() }}
+            </p>
           </ng-container>
         </ng-container>
       </div>
