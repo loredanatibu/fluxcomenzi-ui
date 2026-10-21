@@ -134,6 +134,13 @@ export class LucrareComponent {
     if (this.mode() === mode) return;
 
     this.mode.set(mode);
+    this.resetForm();
+  }
+
+  // Back to the current mode's starting state: nothing selected, fresh data. Used when
+  // switching modes and after every successful save.
+  private resetForm(): void {
+    const mode = this.mode();
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.selectedLucrareId.set(null);
@@ -225,9 +232,10 @@ export class LucrareComponent {
     const payload = { idObiectiv: idObiectiv!, nume: nume! };
 
     this.lucrareService.update(this.selectedLucrareId()!, payload).subscribe({
-      next: () => {
+      next: async () => {
         this.isSubmitting.set(false);
-        this.successMessage.set('Lucrarea a fost actualizată.');
+        await this.confirmDialog.notifySaved();
+        this.resetForm();
       },
       error: () => {
         this.isSubmitting.set(false);
@@ -263,13 +271,13 @@ export class LucrareComponent {
       ),
     );
 
-    forkJoin(requests).subscribe((results) => {
+    forkJoin(requests).subscribe(async (results) => {
       this.isSubmitting.set(false);
       const failed = groups.filter((_, i) => !results[i]);
 
       if (failed.length === 0) {
-        this.successMessage.set(groups.length === 1 ? 'Lucrarea a fost salvată.' : 'Lucrările au fost salvate.');
-        this.resetCreateRows();
+        await this.confirmDialog.notifySaved();
+        this.resetForm();
         return;
       }
 

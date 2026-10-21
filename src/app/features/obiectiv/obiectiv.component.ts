@@ -93,6 +93,13 @@ export class ObiectivComponent {
     if (this.mode() === mode) return;
 
     this.mode.set(mode);
+    this.resetForm();
+  }
+
+  // Back to the current mode's starting state: empty fields, nothing selected, fresh list
+  // (update). Used when switching modes and after every successful save.
+  private resetForm(): void {
+    const mode = this.mode();
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.dateRangeError.set(null);
@@ -187,16 +194,11 @@ export class ObiectivComponent {
         : this.objectiveService.create(payload);
 
     request.subscribe({
-      next: () => {
+      next: async () => {
         this.isSubmitting.set(false);
-        this.successMessage.set(mode === 'update' ? 'Obiectivul a fost actualizat.' : 'Obiectivul a fost salvat.');
-        if (mode === 'create') {
-          this.form.reset();
-          return;
-        }
-        // Keep the list in step with what was just saved, so the combobox shows the new nume.
-        const id = this.selectedObiectivId();
-        this.obiective.set(this.obiective().map((o) => (o.id === id ? { ...o, ...payload } : o)));
+        await this.confirmDialog.notifySaved();
+        // Update mode reloads the list here, so the combobox shows what was just saved.
+        this.resetForm();
       },
       error: () => {
         this.isSubmitting.set(false);

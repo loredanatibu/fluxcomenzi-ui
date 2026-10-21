@@ -12,12 +12,27 @@ export interface ConfirmOptions {
   variant?: 'danger' | 'primary';
 }
 
-export interface ConfirmRequest extends Required<Omit<ConfirmOptions, 'subject'>> {
-  subject?: string;
+export interface NotifyOptions {
+  title: string;
+  message?: string;
+  okText?: string;
 }
 
-// App-wide replacement for window.confirm(): `if (await confirm.ask({...}))`. The dialog
-// itself (ConfirmDialogComponent) is rendered once, in the app shell, and reads `current`.
+// What the dialog renders: a two-button confirmation ('confirm') or a one-button notice
+// ('notify', e.g. "Salvare efectuată cu succes").
+export interface ConfirmRequest {
+  kind: 'confirm' | 'notify';
+  title: string;
+  message: string;
+  subject?: string;
+  confirmText: string;
+  cancelText: string;
+  variant: 'danger' | 'primary' | 'success';
+}
+
+// App-wide replacement for window.confirm()/alert(): `if (await dialog.ask({...}))` and
+// `await dialog.notify({...})`. The dialog itself (ConfirmDialogComponent) is rendered once,
+// in the app shell, and reads `current`.
 @Injectable({ providedIn: 'root' })
 export class ConfirmDialogService {
   readonly current = signal<ConfirmRequest | null>(null);
@@ -28,12 +43,33 @@ export class ConfirmDialogService {
     this.close(false);
 
     this.current.set({
+      kind: 'confirm',
       confirmText: 'Confirmă',
       cancelText: 'Renunță',
       variant: 'primary',
       ...options,
     });
     return new Promise<boolean>((resolve) => (this.resolve = resolve));
+  }
+
+  // One-button notice; resolves once the user dismisses it (OK, Esc or a click outside).
+  notify(options: NotifyOptions): Promise<void> {
+    this.close(false);
+
+    this.current.set({
+      kind: 'notify',
+      title: options.title,
+      message: options.message ?? '',
+      confirmText: options.okText ?? 'OK',
+      cancelText: '',
+      variant: 'success',
+    });
+    return new Promise<void>((resolve) => (this.resolve = () => resolve()));
+  }
+
+  // Shown after every successful save.
+  notifySaved(): Promise<void> {
+    return this.notify({ title: 'Salvare efectuată cu succes' });
   }
 
   close(confirmed: boolean): void {

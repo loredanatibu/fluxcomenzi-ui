@@ -54,8 +54,9 @@ export class ConfirmDialogComponent {
     }
   }
 
-  // Destructive actions start on Renunță, so a reflexive Enter doesn't delete anything.
-  private focusInitialButton(variant: 'danger' | 'primary'): void {
+  // Destructive actions start on Renunță, so a reflexive Enter doesn't delete anything;
+  // everything else (incl. a one-button notice) starts on the main button.
+  private focusInitialButton(variant: 'danger' | 'primary' | 'success'): void {
     const button = variant === 'danger' ? this.cancelButton : this.confirmButton;
     button?.nativeElement.focus();
   }

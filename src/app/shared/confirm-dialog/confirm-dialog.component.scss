@@ -7,6 +7,21 @@
     --accent: var(--color-danger);
     --accent-soft: rgba(214, 69, 69, 0.12);
   }
+
+  &--success {
+    --accent: #3db03f; // same green as the Salvează buttons
+    --accent-soft: rgba(61, 176, 63, 0.14);
+  }
+
+  // A one-line notice ("Salvare efectuată cu succes") needs less room than a question.
+  &--notify {
+    width: min(380px, 100%);
+    align-items: center;
+
+    .confirm-dialog__title {
+      margin: 0;
+    }
+  }
 }
 
 .confirm-dialog__backdrop {

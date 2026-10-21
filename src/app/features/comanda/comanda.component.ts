@@ -292,12 +292,12 @@ export class ComandaComponent {
     this.isSubmitting.set(true);
 
     forkJoin(updates).subscribe({
-      next: () => {
+      next: async () => {
         this.isSubmitting.set(false);
-        this.successMessage.set('Comenzile au fost actualizate.');
-        // Saved: the reload below should replace these rows, not keep them as unsaved edits.
+        // Saved: the reload in resetForm() should replace these rows, not keep them as unsaved edits.
         this.gridForm.markAsPristine();
-        this.loadComenzi();
+        await this.confirmDialog.notifySaved();
+        this.resetForm();
       },
       error: () => {
         this.isSubmitting.set(false);
@@ -353,6 +353,13 @@ export class ComandaComponent {
     if (this.mode() === mode) return;
 
     this.mode.set(mode);
+    this.resetForm();
+  }
+
+  // Back to the current mode's starting state: nothing selected, fresh data. Used when
+  // switching modes and after every successful save.
+  private resetForm(): void {
+    const mode = this.mode();
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.selectedLucrareId.set(null);
@@ -409,13 +416,13 @@ export class ComandaComponent {
       );
     });
 
-    forkJoin(requests).subscribe((results) => {
+    forkJoin(requests).subscribe(async (results) => {
       this.isSubmitting.set(false);
       const failed = new Set(entries.filter((_, i) => !results[i]).map(({ row }) => row));
 
       if (failed.size === 0) {
-        this.successMessage.set(entries.length === 1 ? 'Comanda a fost salvată.' : 'Comenzile au fost salvate.');
-        this.resetSolicitantGroups();
+        await this.confirmDialog.notifySaved();
+        this.resetForm();
         return;
       }
 

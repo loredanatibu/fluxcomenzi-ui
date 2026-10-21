@@ -4,10 +4,12 @@
       #panel
       class="confirm-dialog"
       [class.confirm-dialog--danger]="request.variant === 'danger'"
+      [class.confirm-dialog--success]="request.variant === 'success'"
+      [class.confirm-dialog--notify]="request.kind === 'notify'"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
-      aria-describedby="confirm-dialog-message"
+      [attr.aria-describedby]="request.message ? 'confirm-dialog-message' : null"
       (click)="$event.stopPropagation()"
     >
       <div class="confirm-dialog__icon" aria-hidden="true">
@@ -15,6 +17,10 @@
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
             <path d="M12 9v4M12 17h.01" />
+          </svg>
+        } @else if (request.variant === 'success') {
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 6 9 17l-5-5" />
           </svg>
         } @else {
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -26,16 +32,20 @@
 
       <div class="confirm-dialog__body">
         <h2 id="confirm-dialog-title" class="confirm-dialog__title">{{ request.title }}</h2>
-        <p id="confirm-dialog-message" class="confirm-dialog__message">{{ request.message }}</p>
+        @if (request.message) {
+          <p id="confirm-dialog-message" class="confirm-dialog__message">{{ request.message }}</p>
+        }
         @if (request.subject) {
           <p class="confirm-dialog__subject">{{ request.subject }}</p>
         }
       </div>
 
       <div class="confirm-dialog__actions">
-        <button #cancelButton type="button" class="confirm-dialog__button" (click)="cancel()">
-          {{ request.cancelText }}
-        </button>
+        @if (request.kind === 'confirm') {
+          <button #cancelButton type="button" class="confirm-dialog__button" (click)="cancel()">
+            {{ request.cancelText }}
+          </button>
+        }
         <button
           #confirmButton
           type="button"
