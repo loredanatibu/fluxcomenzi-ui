@@ -459,11 +459,11 @@ $termen-livrare-width: 15rem;
   }
   th:nth-child(8),
   td:nth-child(8) {
-    width: 8%;
+    width: 14%;
   }
   th:nth-child(9),
   td:nth-child(9) {
-    width: 21%;
+    width: 15%;
     white-space: normal;
   }
 }
@@ -559,6 +559,25 @@ $termen-livrare-width: 15rem;
   margin: 0;
   color: var(--color-danger);
   font-size: 0.85rem;
+}
+
+// Recepție: the editable quantity with the total received so far (from comenzi_istoric) beside it.
+.comanda__receptionat {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+}
+
+.comanda__receptionat-total {
+  flex: 0 0 auto;
+  color: var(--color-danger);
+  font-size: 0.8rem;
+  white-space: nowrap;
 }
 
 .comanda__field-error {

@@ -197,7 +197,9 @@ export class ComandaComponent {
               prinAgent: [c.idAgent != null],
               idAgent: [{ value: c.idAgent, disabled: c.idAgent == null }, Validators.required],
               termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
-              comandaReceptionata: [c.comandaReceptionata, [Validators.required, Validators.min(0)]],
+              // Recepție: what is received now, added to the comanda's total by the API -- so it
+              // starts at 0. Not shown in Actualizare, whose save ignores it.
+              cantitateReceptionata: [0, [Validators.required, Validators.min(0)]],
               observatii: [c.observatii],
             }),
           ),
@@ -215,21 +217,23 @@ export class ComandaComponent {
     }
   }
 
-  // Recepție: more can't be received than was ordered. Same treatment as the obiectiv date
-  // range -- the offending value is cleared and the message stays until the next edit.
+  // Recepție: what was received before plus what is received now can't exceed what was
+  // ordered. Same treatment as the obiectiv date range -- the offending value is cleared and
+  // the message stays until the next edit.
   validateReceptionat(index: number): void {
     const comanda = this.gridRows[index];
-    const control = this.gridForm.at(index)?.get('comandaReceptionata');
+    const control = this.gridForm.at(index)?.get('cantitateReceptionata');
     if (!comanda || !control) return;
 
     const receptionat = control.value;
-    if (receptionat == null || receptionat === '' || Number(receptionat) <= comanda.cantitate) {
+    const ramas = comanda.cantitate - comanda.totalReceptionat;
+    if (receptionat == null || receptionat === '' || Number(receptionat) <= ramas) {
       this.receptionatError.set(null);
       return;
     }
 
     this.receptionatError.set(
-      `${comanda.numeMaterial}: cantitatea recepționată nu poate fi mai mare decât cantitatea comandată (${comanda.cantitate} ${comanda.unitateMasura}).`,
+      `${comanda.numeMaterial}: se mai pot recepționa cel mult ${ramas} ${comanda.unitateMasura} (comandat ${comanda.cantitate}, recepționat deja ${comanda.totalReceptionat}).`,
     );
     control.setValue(null);
   }
@@ -375,6 +379,13 @@ export class ComandaComponent {
       .filter(({ group }) => group.dirty)
       .map(({ group, row }) => {
         const v = group.getRawValue();
+        // Only Recepție receives quantities; Actualizare saves the rest with 0 received in the istoric.
+        if (this.mode() === 'receptie') {
+          return this.comandaService.receptioneaza(row.id, {
+            cantitateReceptionata: Number(v.cantitateReceptionata),
+            observatii: v.observatii ?? '',
+          });
+        }
         const payload: ComandaPayload = {
           idLucrare: row.idLucrare,
           idSolicitant: Number(v.idSolicitant),
@@ -384,10 +395,9 @@ export class ComandaComponent {
           cantitate: Number(v.cantitate),
           unitateMasura: v.unitateMasura,
           termenLivrare: v.termenLivrare,
-          comandaReceptionata: Number(v.comandaReceptionata),
           observatii: v.observatii ?? '',
         };
-        return this.comandaService.update(row.id, payload);
+        return this.comandaService.actualizeaza(row.id, payload);
       });
 
     if (updates.length === 0) return;
@@ -415,7 +425,7 @@ export class ComandaComponent {
   // unsaved edit in the Recepționat cell doesn't change it.
   canDeleteGridRow(index: number): boolean {
     const comanda = this.gridRows[index];
-    return comanda != null && !comanda.comandaReceptionata;
+    return comanda != null && !comanda.totalReceptionat;
   }
 
   async deleteGridRow(index: number): Promise<void> {
@@ -521,7 +531,6 @@ export class ComandaComponent {
         cantitate: Number(v.cantitate),
         unitateMasura: v.unitateMasura,
         termenLivrare: v.termenLivrare,
-        comandaReceptionata: 0,
         observatii: '',
       };
       return this.comandaService.create(payload).pipe(

@@ -13,7 +13,12 @@ export interface ComandaPayload {
   cantitate: number;
   unitateMasura: string;
   termenLivrare: string;
-  comandaReceptionata: number;
+  observatii: string;
+}
+
+// Recepție Comandă: the quantity received now (not the total) and the comanda's observații.
+export interface ReceptiePayload {
+  cantitateReceptionata: number;
   observatii: string;
 }
 
@@ -34,10 +39,16 @@ export class ComandaService {
     return this.http.post<Comanda>(`${this.config.apiUrl}/comenzi`, comanda);
   }
 
-  // PUT /api/comenzi/{id} -- updates an existing comanda (numeMaterial is sent
-  // unchanged; the rest are editable in the UI).
-  update(id: number, comanda: ComandaPayload): Observable<Comanda> {
-    return this.http.put<Comanda>(`${this.config.apiUrl}/comenzi/${id}`, comanda);
+  // PUT /api/comenzi/{id}/receptie -- Recepție Comandă: logs the quantity received now in
+  // comenzi_istoric, whose sum is the comanda's totalReceptionat.
+  receptioneaza(id: number, receptie: ReceptiePayload): Observable<Comanda> {
+    return this.http.put<Comanda>(`${this.config.apiUrl}/comenzi/${id}/receptie`, receptie);
+  }
+
+  // PUT /api/comenzi/{id}/actualizare -- Actualizare Comandă: the API keeps cantitate as it
+  // is and logs 0 received in comenzi_istoric.
+  actualizeaza(id: number, comanda: ComandaPayload): Observable<Comanda> {
+    return this.http.put<Comanda>(`${this.config.apiUrl}/comenzi/${id}/actualizare`, comanda);
   }
 
   // DELETE /api/comenzi/{id} -- removes a comanda.

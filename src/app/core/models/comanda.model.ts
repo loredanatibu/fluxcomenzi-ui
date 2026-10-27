@@ -11,7 +11,9 @@ export interface Comanda {
   cantitate: number;
   unitateMasura: string;
   termenLivrare: string;
-  comandaReceptionata: number;
+  // Read-only: what was received so far. Not stored in comenzi -- the API sums
+  // comanda_receptionata over the UPDATE rows in comenzi_istoric.
+  totalReceptionat: number;
   observatii: string;
   createdBy: string;
   createdAt: string;

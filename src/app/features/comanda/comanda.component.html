@@ -227,7 +227,8 @@
                       ></app-combo-select>
                     </td>
                     <td><input type="text" formControlName="numeMaterial" autocomplete="off" maxlength="200" /></td>
-                    <td><input type="number" formControlName="cantitate" step="1" min="0" /></td>
+                    <!-- Read-only here: the ordered quantity can't be changed in Actualizare Comandă. -->
+                    <td>{{ gridRows[i].cantitate }}</td>
                     <td><input type="text" formControlName="unitateMasura" autocomplete="off" maxlength="10" /></td>
                     <td>
                       <app-combo-select
@@ -244,7 +245,14 @@
                     </td>
                     <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
                     <!-- Read-only here: the received quantity is only edited in Recepție Comandă. -->
-                    <td>{{ gridRows[i].comandaReceptionata }}</td>
+                    <td>
+                      <span
+                        class="comanda__receptionat-total"
+                        title="Total cantități recepționate până în prezent"
+                      >
+                        Total: {{ gridRows[i].totalReceptionat }}
+                      </span>
+                    </td>
                     <td>
                       <button
                         type="button"
@@ -289,13 +297,21 @@
                       <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                     </ng-container>
                     <td>
-                      <input
-                        type="number"
-                        formControlName="comandaReceptionata"
-                        step="1"
-                        min="0"
-                        (input)="validateReceptionat(i)"
-                      />
+                      <div class="comanda__receptionat">
+                        <input
+                          type="number"
+                          formControlName="cantitateReceptionata"
+                          step="1"
+                          min="0"
+                          (input)="validateReceptionat(i)"
+                        />
+                        <span
+                          class="comanda__receptionat-total"
+                          title="Total cantități recepționate până în prezent"
+                        >
+                          Total: {{ gridRows[i].totalReceptionat }}
+                        </span>
+                      </div>
                     </td>
                     <td>
                       <textarea
