@@ -16,6 +16,9 @@ export type DateInputType = 'date' | 'datetime-local';
 })
 export class DateInputComponent implements ControlValueAccessor {
   @Input() type: DateInputType = 'date';
+  // Earliest pickable value in the native calendar, in the model format. Only greys out the
+  // calendar -- typed text isn't checked, so the form still has to validate it.
+  @Input() min = '';
 
   private readonly ngControl = inject(NgControl, { optional: true, self: true });
 

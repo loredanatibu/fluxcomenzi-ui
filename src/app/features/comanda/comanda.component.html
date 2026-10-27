@@ -133,7 +133,13 @@
                       *ngTemplateOutlet="agentCell; context: { $implicit: group }"
                     ></ng-container>
                   </td>
-                  <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
+                  <td>
+                    <app-date-input
+                      type="datetime-local"
+                      formControlName="termenLivrare"
+                      [min]="minTermenLivrare"
+                    ></app-date-input>
+                  </td>
                   <td>
                     <button
                       type="button"
@@ -164,6 +170,8 @@
         >
           + Adaugă solicitant
         </button>
+
+        <p *ngIf="termenLivrareError()" class="comanda__field-error">{{ termenLivrareError() }}</p>
       </ng-container>
 
       <div class="comanda__actions">
@@ -242,7 +250,13 @@
                         *ngTemplateOutlet="agentCell; context: { $implicit: group }"
                       ></ng-container>
                     </td>
-                    <td><app-date-input type="datetime-local" formControlName="termenLivrare"></app-date-input></td>
+                    <td>
+                      <app-date-input
+                        type="datetime-local"
+                        formControlName="termenLivrare"
+                        [min]="minTermenLivrare"
+                      ></app-date-input>
+                    </td>
                     <!-- Read-only here: the received quantity is only edited in Recepție Comandă. -->
                     <td>
                       <span
@@ -327,6 +341,9 @@
 
             <p *ngIf="mode() === 'receptie' && receptionatError()" class="comanda__field-error">
               {{ receptionatError() }}
+            </p>
+            <p *ngIf="mode() === 'update' && termenLivrareError()" class="comanda__field-error">
+              {{ termenLivrareError() }}
             </p>
           </ng-container>
         </ng-container>

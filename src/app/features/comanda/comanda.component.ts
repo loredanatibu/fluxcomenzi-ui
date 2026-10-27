@@ -1,7 +1,7 @@
 import { Component, ElementRef, Injector, computed, effect, inject, afterNextRender, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
-import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, forkJoin, map, merge, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { ComandaService, ComandaPayload } from '../../core/services/comanda.service';
@@ -45,6 +45,9 @@ export class ComandaComponent {
   readonly errorMessage = signal<string | null>(null);
   readonly successMessage = signal<string | null>(null);
   readonly receptionatError = signal<string | null>(null);
+  readonly termenLivrareError = signal<string | null>(null);
+  // Termen livrare can't be picked before today -- also the native calendar's min.
+  readonly minTermenLivrare = `${todayIsoDate()}T00:00`;
 
   readonly comenzi = signal<Comanda[]>([]);
   readonly isLoadingComenzi = signal(false);
@@ -197,7 +200,7 @@ export class ComandaComponent {
     this.gridInitialValues = [];
     this.gridForm.clear();
     for (const c of rows) {
-      const fresh = this.withAgentToggle(
+      const fresh = this.withRowChecks(
         this.fb.group({
           idSolicitant: [c.idSolicitant, Validators.required],
           numeMaterial: [c.numeMaterial],
@@ -206,7 +209,9 @@ export class ComandaComponent {
           idFurnizor: [c.idFurnizor, Validators.required],
           prinAgent: [c.idAgent != null],
           idAgent: [{ value: c.idAgent, disabled: c.idAgent == null }, Validators.required],
-          termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
+          // Required so a past date cleared by validateTermenLivrare blocks the save. A saved
+          // termen already in the past is kept -- only a newly picked one is checked.
+          termenLivrare: [toDateTimeInputValue(c.termenLivrare), Validators.required],
           // Recepție: what is received now, added to the comanda's total by the API -- so it
           // starts at 0. Negative is a correction of an earlier recepție. Not shown in
           // Actualizare, whose save ignores it.
@@ -371,7 +376,7 @@ export class ComandaComponent {
   }
 
   private newCreateRow(): FormGroup {
-    return this.withAgentToggle(
+    return this.withRowChecks(
       this.fb.group({
         numeMaterial: ['', Validators.required],
         cantitate: [null as number | null, [Validators.required, Validators.min(0)]],
@@ -386,9 +391,28 @@ export class ComandaComponent {
 
   // Ticking "prin agent" unlocks the row's Agent combobox (required from then on, as a
   // disabled control isn't validated) and loads the agenti; unticking clears it again.
-  private withAgentToggle(row: FormGroup): FormGroup {
+  // Every edit of Termen livrare is checked against today (see validateTermenLivrare).
+  private withRowChecks(row: FormGroup): FormGroup {
     row.get('prinAgent')!.valueChanges.subscribe(() => this.syncAgentControl(row));
+    const termenLivrare = row.get('termenLivrare')!;
+    termenLivrare.valueChanges.subscribe(() => this.validateTermenLivrare(termenLivrare));
     return row;
+  }
+
+  // Termen livrare can't be before today, in create and update alike. Same treatment as
+  // Recepționat -- the offending value is cleared and the message stays until the next edit.
+  // Runs on edits only, so a saved comanda whose termen has since passed still loads as is.
+  private validateTermenLivrare(control: AbstractControl): void {
+    const value: string | null = control.value;
+    if (!value) return;
+
+    if (value.slice(0, 10) >= todayIsoDate()) {
+      this.termenLivrareError.set(null);
+      return;
+    }
+
+    this.termenLivrareError.set('Termenul de livrare nu poate fi mai mic decât data de azi.');
+    control.setValue('');
   }
 
   private syncAgentControl(row: FormGroup): void {
@@ -540,6 +564,7 @@ export class ComandaComponent {
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.receptionatError.set(null);
+    this.termenLivrareError.set(null);
     this.selectedLucrareId.set(null);
     this.selectedIdObiectiv.set(null);
     this.form.reset();
@@ -737,6 +762,14 @@ function byCreatedAt(a: Comanda, b: Comanda): number {
 // Quantities are decimals: rounding to 3 places drops float noise like 10.100000000000001.
 function roundCantitate(value: number): number {
   return Number(value.toFixed(3));
+}
+
+// Today as 'yyyy-mm-dd' in local time -- compares as a string against the date part of a
+// datetime-local value.
+function todayIsoDate(): string {
+  const now = new Date();
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
 function toDateTimeInputValue(value: string | null | undefined): string {
