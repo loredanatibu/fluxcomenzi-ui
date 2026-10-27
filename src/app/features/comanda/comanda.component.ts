@@ -208,17 +208,19 @@ export class ComandaComponent {
           idAgent: [{ value: c.idAgent, disabled: c.idAgent == null }, Validators.required],
           termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
           // Recepție: what is received now, added to the comanda's total by the API -- so it
-          // starts at 0. Not shown in Actualizare, whose save ignores it.
-          cantitateReceptionata: [0, [Validators.required, Validators.min(0)]],
+          // starts at 0. Negative is a correction of an earlier recepție. Not shown in
+          // Actualizare, whose save ignores it.
+          cantitateReceptionata: [0, Validators.required],
           observatii: [c.observatii],
         }),
       );
       this.gridInitialValues.push(fresh.getRawValue());
 
       const group = changedById.get(c.id) ?? fresh;
-      // Fully received: nothing left to receive or change, in Recepție or Actualizare.
+      // Actualizare: locked as soon as anything was received -- the order can't change under
+      // what's already delivered. Recepție stays open even when fully received, for corrections.
       // emitEvent: false so the prinAgent toggle doesn't see the disable and clear the agent.
-      if (this.isFullyReceived(c)) group.disable({ emitEvent: false });
+      if (this.mode() === 'update' && c.totalReceptionat) group.disable({ emitEvent: false });
       this.gridForm.push(group);
     }
 
@@ -228,10 +230,6 @@ export class ComandaComponent {
     }
 
     this.updateGridChanges();
-  }
-
-  isFullyReceived(comanda: Comanda): boolean {
-    return roundCantitate(comanda.cantitate - comanda.totalReceptionat) <= 0;
   }
 
   // Compares as strings so a control holding '5' and one holding 5 count as the same value.
@@ -248,8 +246,9 @@ export class ComandaComponent {
   }
 
   // Recepție: what was received before plus what is received now can't exceed what was
-  // ordered. Same treatment as the obiectiv date range -- the offending value is cleared and
-  // the message stays until the next edit.
+  // ordered, nor -- for a correction (negative) -- drop below 0. Same treatment as the
+  // obiectiv date range -- the offending value is cleared and the message stays until the
+  // next edit.
   validateReceptionat(index: number): void {
     const comanda = this.gridRows[index];
     const control = this.gridForm.at(index)?.get('cantitateReceptionata');
@@ -259,15 +258,31 @@ export class ComandaComponent {
     // Rounded so float noise (12.4 - 2.3 = 10.100000000000001) neither shows in the message
     // nor rejects a valid quantity.
     const ramas = roundCantitate(comanda.cantitate - comanda.totalReceptionat);
-    if (receptionat == null || receptionat === '' || Number(receptionat) <= ramas) {
+    const value = Number(receptionat);
+    if (receptionat == null || receptionat === '' || (value <= ramas && value >= -comanda.totalReceptionat)) {
       this.receptionatError.set(null);
       return;
     }
 
     this.receptionatError.set(
-      `${comanda.numeMaterial}: se mai pot recepționa cel mult ${ramas} ${comanda.unitateMasura} (comandat ${comanda.cantitate}, recepționat deja ${comanda.totalReceptionat}).`,
+      value > ramas
+        ? `${comanda.numeMaterial}: se mai pot recepționa cel mult ${ramas} ${comanda.unitateMasura} (comandat ${comanda.cantitate}, recepționat deja ${comanda.totalReceptionat}).`
+        : `${comanda.numeMaterial}: corecția poate scădea cel mult ${comanda.totalReceptionat} ${comanda.unitateMasura} (recepționat până acum).`,
     );
     control.setValue(null);
+  }
+
+  // A correction must say why: its row in comenzi_istoric keeps the observații as written now,
+  // so they have to be changed from what the comanda already had.
+  private findCorectieFaraMotiv(): Comanda | null {
+    const index = this.gridForm.controls.findIndex((group, i) => {
+      const v = group.getRawValue();
+      return (
+        Number(v.cantitateReceptionata) < 0 &&
+        String(v.observatii ?? '').trim() === String(this.gridInitialValues[i]?.['observatii'] ?? '').trim()
+      );
+    });
+    return index === -1 ? null : this.gridRows[index];
   }
 
   rowsOf(group: FormGroup): FormArray<FormGroup> {
@@ -404,6 +419,14 @@ export class ComandaComponent {
   }
 
   saveGridChanges(): void {
+    const corectieFaraMotiv = this.mode() === 'receptie' ? this.findCorectieFaraMotiv() : null;
+    if (corectieFaraMotiv) {
+      this.receptionatError.set(
+        `${corectieFaraMotiv.numeMaterial}: la o corecție, scrie motivul în Observații.`,
+      );
+      return;
+    }
+
     const updates = this.gridForm.controls
       .map((group, i) => ({ group, row: this.gridRows[i], changed: this.isGridRowChanged(i) }))
       .filter(({ changed }) => changed)
