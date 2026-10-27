@@ -1,4 +1,4 @@
-import { Component, ElementRef, Injector, computed, effect, inject, afterNextRender, signal } from '@angular/core';
+import { Component, ElementRef, Injector, computed, effect, inject, afterNextRender, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -59,14 +59,18 @@ export class ComandaComponent {
 
   // One FormGroup per row in the comenzi grid, rebuilt whenever filteredComenzi changes.
   // gridRows mirrors it 1:1 so save can recover each row's id/idLucrare (not editable
-  // fields, so not part of the group). The Salvează button's enabled state reads
-  // gridForm.dirty directly in the template -- Reactive Forms already tracks that
-  // per control from user input, no extra bookkeeping needed.
+  // fields, so not part of the group). A row counts as changed only when its values differ
+  // from gridInitialValues (also 1:1) -- not when it's merely dirty, so editing a cell and
+  // putting the old value back (e.g. Recepționat 0 -> 0) saves nothing.
   readonly gridForm = new FormArray<FormGroup>([]);
   // Update and Recepție share the grid: same row groups, different editable columns.
   // Fields a mode doesn't show stay in the group untouched, so saving sends them back as-is.
   readonly isGridMode = computed(() => this.mode() === 'update' || this.mode() === 'receptie');
   gridRows: Comanda[] = [];
+  private gridInitialValues: Record<string, unknown>[] = [];
+  // Drives the Salvează button. Recomputed on edits, rebuilds and saves only -- not on every
+  // change detection, as a method called from the template would be.
+  readonly hasGridChanges = signal(false);
 
   // Create mode: comenzi are grouped by solicitant -- each group is { idSolicitant, rows },
   // with one FormGroup per new comanda in rows, all saved under the selected lucrare.
@@ -171,39 +175,51 @@ export class ComandaComponent {
       }
     });
 
-    effect(() => this.buildGridForm(this.filteredComenzi()));
+    this.gridForm.valueChanges.pipe(takeUntilDestroyed()).subscribe(() => this.updateGridChanges());
+
+    // untracked: buildGridForm writes signals (hasGridChanges, the agenti loading state),
+    // which an effect may not do, and its reads shouldn't make the grid rebuild either.
+    effect(() => {
+      const rows = this.filteredComenzi();
+      untracked(() => this.buildGridForm(rows));
+    });
   }
 
   private buildGridForm(rows: Comanda[]): void {
     // Unsaved edits survive a rebuild (e.g. after deleting another row) as long as their
     // comanda is still listed; everything else is rebuilt from the server data.
-    const dirtyById = new Map<number, FormGroup>();
+    const changedById = new Map<number, FormGroup>();
     this.gridForm.controls.forEach((group, i) => {
-      if (group.dirty && this.gridRows[i]) dirtyById.set(this.gridRows[i].id, group);
+      if (this.isGridRowChanged(i)) changedById.set(this.gridRows[i].id, group);
     });
 
     this.gridRows = rows;
+    this.gridInitialValues = [];
     this.gridForm.clear();
     for (const c of rows) {
-      this.gridForm.push(
-        dirtyById.get(c.id) ??
-          this.withAgentToggle(
-            this.fb.group({
-              idSolicitant: [c.idSolicitant, Validators.required],
-              numeMaterial: [c.numeMaterial],
-              cantitate: [c.cantitate],
-              unitateMasura: [c.unitateMasura],
-              idFurnizor: [c.idFurnizor, Validators.required],
-              prinAgent: [c.idAgent != null],
-              idAgent: [{ value: c.idAgent, disabled: c.idAgent == null }, Validators.required],
-              termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
-              // Recepție: what is received now, added to the comanda's total by the API -- so it
-              // starts at 0. Not shown in Actualizare, whose save ignores it.
-              cantitateReceptionata: [0, [Validators.required, Validators.min(0)]],
-              observatii: [c.observatii],
-            }),
-          ),
+      const fresh = this.withAgentToggle(
+        this.fb.group({
+          idSolicitant: [c.idSolicitant, Validators.required],
+          numeMaterial: [c.numeMaterial],
+          cantitate: [c.cantitate],
+          unitateMasura: [c.unitateMasura],
+          idFurnizor: [c.idFurnizor, Validators.required],
+          prinAgent: [c.idAgent != null],
+          idAgent: [{ value: c.idAgent, disabled: c.idAgent == null }, Validators.required],
+          termenLivrare: [toDateTimeInputValue(c.termenLivrare)],
+          // Recepție: what is received now, added to the comanda's total by the API -- so it
+          // starts at 0. Not shown in Actualizare, whose save ignores it.
+          cantitateReceptionata: [0, [Validators.required, Validators.min(0)]],
+          observatii: [c.observatii],
+        }),
       );
+      this.gridInitialValues.push(fresh.getRawValue());
+
+      const group = changedById.get(c.id) ?? fresh;
+      // Fully received: nothing left to receive or change, in Recepție or Actualizare.
+      // emitEvent: false so the prinAgent toggle doesn't see the disable and clear the agent.
+      if (this.isFullyReceived(c)) group.disable({ emitEvent: false });
+      this.gridForm.push(group);
     }
 
     // Listed comenzi that already have an agent need the agenti to show the name.
@@ -211,10 +227,24 @@ export class ComandaComponent {
       this.loadAgenti();
     }
 
-    // clear() doesn't reset the array's own dirty flag, so recompute it from the rows.
-    if (!this.gridForm.controls.some((group) => group.dirty)) {
-      this.gridForm.markAsPristine();
-    }
+    this.updateGridChanges();
+  }
+
+  isFullyReceived(comanda: Comanda): boolean {
+    return roundCantitate(comanda.cantitate - comanda.totalReceptionat) <= 0;
+  }
+
+  // Compares as strings so a control holding '5' and one holding 5 count as the same value.
+  private isGridRowChanged(index: number): boolean {
+    const initial = this.gridInitialValues[index];
+    const group = this.gridForm.at(index);
+    if (!initial || !group) return false;
+    const current = group.getRawValue();
+    return Object.keys(initial).some((key) => String(current[key] ?? '') !== String(initial[key] ?? ''));
+  }
+
+  private updateGridChanges(): void {
+    this.hasGridChanges.set(this.gridForm.controls.some((_, i) => this.isGridRowChanged(i)));
   }
 
   // Recepție: what was received before plus what is received now can't exceed what was
@@ -226,7 +256,9 @@ export class ComandaComponent {
     if (!comanda || !control) return;
 
     const receptionat = control.value;
-    const ramas = comanda.cantitate - comanda.totalReceptionat;
+    // Rounded so float noise (12.4 - 2.3 = 10.100000000000001) neither shows in the message
+    // nor rejects a valid quantity.
+    const ramas = roundCantitate(comanda.cantitate - comanda.totalReceptionat);
     if (receptionat == null || receptionat === '' || Number(receptionat) <= ramas) {
       this.receptionatError.set(null);
       return;
@@ -372,11 +404,9 @@ export class ComandaComponent {
   }
 
   saveGridChanges(): void {
-    if (!this.gridForm.dirty) return;
-
     const updates = this.gridForm.controls
-      .map((group, i) => ({ group, row: this.gridRows[i] }))
-      .filter(({ group }) => group.dirty)
+      .map((group, i) => ({ group, row: this.gridRows[i], changed: this.isGridRowChanged(i) }))
+      .filter(({ changed }) => changed)
       .map(({ group, row }) => {
         const v = group.getRawValue();
         // Only Recepție receives quantities; Actualizare saves the rest with 0 received in the istoric.
@@ -410,7 +440,8 @@ export class ComandaComponent {
       next: async () => {
         this.isSubmitting.set(false);
         // Saved: the reload in resetForm() should replace these rows, not keep them as unsaved edits.
-        this.gridForm.markAsPristine();
+        this.gridInitialValues = this.gridForm.controls.map((group) => group.getRawValue());
+        this.updateGridChanges();
         await this.confirmDialog.notifySaved();
         this.resetForm();
       },
@@ -677,6 +708,11 @@ function hasFilledValue(control: FormGroup): boolean {
 function byCreatedAt(a: Comanda, b: Comanda): number {
   const diff = (Date.parse(a.createdAt) || 0) - (Date.parse(b.createdAt) || 0);
   return diff !== 0 ? diff : a.id - b.id;
+}
+
+// Quantities are decimals: rounding to 3 places drops float noise like 10.100000000000001.
+function roundCantitate(value: number): number {
+  return Number(value.toFixed(3));
 }
 
 function toDateTimeInputValue(value: string | null | undefined): string {

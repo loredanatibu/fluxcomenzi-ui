@@ -561,23 +561,27 @@ $termen-livrare-width: 15rem;
   font-size: 0.85rem;
 }
 
-// Recepție: the editable quantity with the total received so far (from comenzi_istoric) beside it.
+// Recepție: the editable quantity with the total received so far (from comenzi_istoric) beside it,
+// each taking half of the cell.
 .comanda__receptionat {
   display: flex;
   align-items: center;
   gap: 0.4rem;
 
   input {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-width: 0;
   }
 }
 
 .comanda__receptionat-total {
-  flex: 0 0 auto;
+  flex: 1 1 0;
+  min-width: 0;
   color: var(--color-danger);
   font-size: 0.8rem;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .comanda__field-error {

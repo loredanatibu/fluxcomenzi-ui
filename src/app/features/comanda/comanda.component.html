@@ -194,7 +194,7 @@
               <button
                 type="button"
                 class="comanda__submit"
-                [disabled]="!gridForm.dirty || gridForm.invalid || isSubmitting()"
+                [disabled]="!hasGridChanges() || gridForm.invalid || isSubmitting()"
                 (click)="saveGridChanges()"
               >
                 {{ isSubmitting() ? 'Se salvează...' : 'Salvează modificările' }}
@@ -250,7 +250,7 @@
                         class="comanda__receptionat-total"
                         title="Total cantități recepționate până în prezent"
                       >
-                        Total: {{ gridRows[i].totalReceptionat }}
+                        {{ gridRows[i].totalReceptionat }}
                       </span>
                     </td>
                     <td>
@@ -309,7 +309,7 @@
                           class="comanda__receptionat-total"
                           title="Total cantități recepționate până în prezent"
                         >
-                          Total: {{ gridRows[i].totalReceptionat }}
+                          {{ gridRows[i].totalReceptionat }}
                         </span>
                       </div>
                     </td>
