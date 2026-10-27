@@ -68,6 +68,9 @@ export class ComboSelectComponent implements ControlValueAccessor {
   readonly query = signal('');
   readonly isOpen = signal(false);
   readonly activeIndex = signal(-1);
+  // Filters only once the user types: on focus the box still shows the picked option's label,
+  // which would otherwise narrow the list down to that one option and hide every alternative.
+  private readonly isFiltering = signal(false);
 
   // The list is position: fixed (viewport coordinates), so no ancestor with overflow --
   // a scrolling form, a table cell -- can clip it. Its box is measured from the input
@@ -82,7 +85,7 @@ export class ComboSelectComponent implements ControlValueAccessor {
   readonly filteredOptions = computed(() => {
     const q = normalize(this.query());
     const opts = this.optionsSignal();
-    if (!q) return opts;
+    if (!q || !this.isFiltering()) return opts;
     return opts.filter((o) => normalize(o.label).includes(q));
   });
 
@@ -123,26 +126,29 @@ export class ComboSelectComponent implements ControlValueAccessor {
 
   onInput(text: string): void {
     this.query.set(text);
+    this.isFiltering.set(true);
     this.open();
-    this.activeIndex.set(-1);
+    // The first match is highlighted, so Enter picks it without reaching for the arrow keys.
+    this.activeIndex.set(this.freeText ? -1 : 0);
 
     if (this.freeText) {
       this.queryChange.emit(text);
-      return;
     }
-
-    if (this.selected() !== null) {
-      this.commit(null);
-    }
+    // Typing only searches: the selection changes once an option is picked, so leaving the
+    // box mid-search keeps the previous value instead of an empty, invalid one (see onBlur).
   }
 
   onFocus(): void {
+    this.isFiltering.set(false);
     if (!this.disabled) this.open();
   }
 
   onBlur(): void {
     this.isOpen.set(false);
+    this.isFiltering.set(false);
     if (!this.freeText) {
+      // Emptying the box is how a selection is cleared; any other unpicked text is dropped.
+      if (!this.query().trim() && this.selected() !== null) this.commit(null);
       this.query.set(this.labelFor(this.selected()));
     }
     this.onTouchedFn();
@@ -151,6 +157,7 @@ export class ComboSelectComponent implements ControlValueAccessor {
   selectOption(option: ComboOption): void {
     this.query.set(option.label);
     this.isOpen.set(false);
+    this.isFiltering.set(false);
     this.commit(option.value);
   }
 
