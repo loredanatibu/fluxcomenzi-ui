@@ -45,8 +45,8 @@ export class ComandaService {
     return this.http.put<Comanda>(`${this.config.apiUrl}/comenzi/${id}/receptie`, receptie);
   }
 
-  // PUT /api/comenzi/{id}/actualizare -- Actualizare Comandă: the API keeps cantitate as it
-  // is and logs 0 received in comenzi_istoric.
+  // PUT /api/comenzi/{id}/actualizare -- Actualizare Comandă: only for a comanda with nothing
+  // received yet; saves every field, cantitate included, and logs 0 received in comenzi_istoric.
   actualizeaza(id: number, comanda: ComandaPayload): Observable<Comanda> {
     return this.http.put<Comanda>(`${this.config.apiUrl}/comenzi/${id}/actualizare`, comanda);
   }

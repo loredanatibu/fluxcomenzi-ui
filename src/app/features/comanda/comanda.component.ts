@@ -201,7 +201,7 @@ export class ComandaComponent {
         this.fb.group({
           idSolicitant: [c.idSolicitant, Validators.required],
           numeMaterial: [c.numeMaterial],
-          cantitate: [c.cantitate],
+          cantitate: [c.cantitate, [Validators.required, Validators.min(0)]],
           unitateMasura: [c.unitateMasura],
           idFurnizor: [c.idFurnizor, Validators.required],
           prinAgent: [c.idAgent != null],
@@ -217,8 +217,9 @@ export class ComandaComponent {
       this.gridInitialValues.push(fresh.getRawValue());
 
       const group = changedById.get(c.id) ?? fresh;
-      // Actualizare: locked as soon as anything was received -- the order can't change under
-      // what's already delivered. Recepție stays open even when fully received, for corrections.
+      // Actualizare: every shown field, cantitate included, stays editable while nothing was
+      // received, and locks as soon as anything was -- the order can't change under what's
+      // already delivered. Recepție stays open even when fully received, for corrections.
       // emitEvent: false so the prinAgent toggle doesn't see the disable and clear the agent.
       if (this.mode() === 'update' && c.totalReceptionat) group.disable({ emitEvent: false });
       this.gridForm.push(group);
