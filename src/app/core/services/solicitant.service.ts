@@ -1,8 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, catchError, shareReplay, throwError } from 'rxjs';
+import { Observable, catchError, shareReplay, tap, throwError } from 'rxjs';
 import { RuntimeConfigService } from './runtime-config.service';
-import { Solicitant } from '../models/solicitant.model';
+import { Solicitant, SolicitantInput } from '../models/solicitant.model';
 
 @Injectable({ providedIn: 'root' })
 export class SolicitantService {
@@ -26,5 +26,19 @@ export class SolicitantService {
       shareReplay(1),
     );
     return this.cache$;
+  }
+
+  // POST /api/solicitanti -- adds a solicitant (from Nomenclatoare). The cached list is dropped so
+  // the comboboxes pick it up on their next getAll().
+  create(solicitant: SolicitantInput): Observable<Solicitant> {
+    return this.http.post<Solicitant>(`${this.config.apiUrl}/solicitanti`, solicitant).pipe(tap(() => (this.cache$ = undefined)));
+  }
+
+  // DELETE /api/solicitanti/{id} -- soft delete: the backend sets activ=false, so the solicitant
+  // drops out of GET /api/solicitanti. 409 (as plain text) when comenzi still reference it.
+  delete(id: number): Observable<void> {
+    return this.http
+      .delete<void>(`${this.config.apiUrl}/solicitanti/${id}`)
+      .pipe(tap(() => (this.cache$ = undefined)));
   }
 }

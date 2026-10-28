@@ -6,3 +6,6 @@ export interface Furnizor {
   telefon: string | null;
   email: string | null;
 }
+
+// What POST /api/furnizori accepts: id and activ are set by the backend.
+export type FurnizorInput = Omit<Furnizor, 'id'>;

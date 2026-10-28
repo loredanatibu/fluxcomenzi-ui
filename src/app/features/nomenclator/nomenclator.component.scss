@@ -1,0 +1,249 @@
+// Same left-menu + content layout as Rapoarte (see raport.component.scss).
+.nomenclator {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.nomenclator__hint {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.nomenclator__content--empty .nomenclator__hint {
+  font-size: 0.8rem;
+}
+
+.nomenclator__layout {
+  display: flex;
+  gap: 1.5rem;
+  height: 100%;
+}
+
+.nomenclator__menu {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.nomenclator__menu-item {
+  text-align: left;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    filter: brightness(1.05);
+  }
+
+  &--active {
+    background: rgb(46, 111, 158);
+    color: var(--color-primary-contrast);
+    border-color: #29869f;
+  }
+}
+
+.nomenclator__content {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 1.5rem;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  overflow-y: auto;
+
+  &--empty {
+    height: auto;
+    align-self: flex-start;
+    padding: 0.45rem 0.75rem;
+  }
+}
+
+.nomenclator__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.nomenclator__title {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--color-text);
+}
+
+// Adaugă / Salvează (see .raport__generate-button).
+.nomenclator__add-button {
+  height: 2.5rem;
+  padding: 0 1.2rem;
+  border: none;
+  border-radius: var(--radius);
+  background: rgb(46, 111, 158);
+  color: var(--color-primary-contrast);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+.nomenclator__cancel-button {
+  height: 2.5rem;
+  padding: 0 1.2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Nume / Telefon / Email + Salvează / Renunță, on one line.
+.nomenclator__form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.nomenclator__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 240px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+
+  input {
+    height: 2.5rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+    font-family: inherit;
+    font-size: 0.95rem;
+    color: var(--color-text);
+    background: var(--color-bg);
+
+    &:focus {
+      outline: none;
+      border-color: rgb(46, 111, 158);
+    }
+  }
+}
+
+.nomenclator__form-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.nomenclator__error,
+.nomenclator__success {
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.nomenclator__error {
+  color: var(--color-danger);
+}
+
+.nomenclator__success {
+  color: #2e7d32;
+}
+
+.nomenclator__table-scroll {
+  overflow-x: auto;
+  min-width: 0;
+}
+
+// Nume, Telefon, Email, × (fixed, at the end of the line).
+.nomenclator__table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.55rem 0.4rem;
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  th {
+    color: var(--color-text-muted);
+    font-weight: 600;
+    background: var(--color-surface);
+    position: sticky;
+    top: 0;
+  }
+
+  td {
+    color: var(--color-text);
+  }
+
+  tbody tr:hover td {
+    background: var(--color-bg);
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 40%;
+  }
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 20%;
+  }
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 3rem;
+    text-align: right;
+  }
+}
+
+// × at the end of each row (see .obiectiv__delete).
+.nomenclator__delete {
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-text-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    color: var(--color-danger);
+    border-color: var(--color-danger);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}

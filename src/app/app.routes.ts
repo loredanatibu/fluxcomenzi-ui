@@ -4,6 +4,7 @@ import { ObiectivComponent } from './features/obiectiv/obiectiv.component';
 import { LucrareComponent } from './features/lucrare/lucrare.component';
 import { ComandaComponent } from './features/comanda/comanda.component';
 import { RaportComponent } from './features/raport/raport.component';
+import { NomenclatorComponent } from './features/nomenclator/nomenclator.component';
 import { authGuard } from './core/guards/auth.guard';
 
 // Rendered inside <router-outlet>, below the nav bar in AppComponent, which
@@ -28,6 +29,11 @@ export const routes: Routes = [
   {
     path: 'rapoarte',
     component: RaportComponent,
+    canActivate: [authGuard],
+  },
+  {
+    path: 'nomenclatoare',
+    component: NomenclatorComponent,
     canActivate: [authGuard],
   },
   { path: '**', redirectTo: '' },

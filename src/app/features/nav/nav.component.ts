@@ -20,5 +20,6 @@ export class NavComponent {
     { label: 'Lucrari', route: '/lucrari' },
     { label: 'Comenzi', route: '/comenzi' },
     { label: 'Rapoarte', route: '/rapoarte' },
+    { label: 'Nomenclatoare', route: '/nomenclatoare' },
   ];
 }

@@ -1,0 +1,122 @@
+<div class="nomenclator">
+  <ng-container *ngIf="!authService.isAuthenticated()">
+    <p class="nomenclator__hint">Autentifică-te pentru a vedea nomenclatoarele.</p>
+  </ng-container>
+
+  <div *ngIf="authService.isAuthenticated()" class="nomenclator__layout">
+    <nav class="nomenclator__menu">
+      <button
+        *ngFor="let type of menu"
+        type="button"
+        class="nomenclator__menu-item"
+        [class.nomenclator__menu-item--active]="activeType() === type"
+        (click)="select(type)"
+      >
+        {{ configs[type].label }}
+      </button>
+    </nav>
+
+    <div class="nomenclator__content" [class.nomenclator__content--empty]="!activeConfig()">
+      <p *ngIf="!activeConfig()" class="nomenclator__hint">Alege un nomenclator din meniu.</p>
+
+      <ng-container *ngIf="activeConfig() as config">
+        <header class="nomenclator__header">
+          <h3 class="nomenclator__title">{{ config.label }}</h3>
+          <button
+            *ngIf="!isAdding()"
+            type="button"
+            class="nomenclator__add-button"
+            [disabled]="isLoading()"
+            (click)="startAdd()"
+          >
+            Adaugă
+          </button>
+        </header>
+
+        <form *ngIf="isAdding()" class="nomenclator__form" (submit)="$event.preventDefault(); save()">
+          <label class="nomenclator__field">
+            <span>{{ config.numeLabel }}<span class="required-marker">*</span></span>
+            <input
+              type="text"
+              name="nume"
+              autocomplete="off"
+              [attr.maxlength]="config.numeMax"
+              [value]="nume()"
+              (input)="nume.set($any($event.target).value)"
+            />
+          </label>
+          <label class="nomenclator__field">
+            <span>Telefon</span>
+            <input
+              type="text"
+              name="telefon"
+              autocomplete="off"
+              [attr.maxlength]="telefonMax"
+              [value]="telefon()"
+              (input)="telefon.set($any($event.target).value)"
+            />
+          </label>
+          <label class="nomenclator__field">
+            <span>Email</span>
+            <input
+              type="email"
+              name="email"
+              autocomplete="off"
+              [attr.maxlength]="config.emailMax"
+              [value]="email()"
+              (input)="email.set($any($event.target).value)"
+            />
+          </label>
+          <div class="nomenclator__form-actions">
+            <button type="submit" class="nomenclator__add-button" [disabled]="isSubmitting()">
+              {{ isSubmitting() ? 'Se salvează...' : 'Salvează' }}
+            </button>
+            <button type="button" class="nomenclator__cancel-button" [disabled]="isSubmitting()" (click)="cancelAdd()">
+              Renunță
+            </button>
+          </div>
+        </form>
+
+        <p *ngIf="errorMessage()" class="nomenclator__error">{{ errorMessage() }}</p>
+        <p *ngIf="successMessage()" class="nomenclator__success">{{ successMessage() }}</p>
+        <p *ngIf="isLoading()" class="nomenclator__hint">Se încarcă...</p>
+
+        <ng-container *ngIf="!isLoading()">
+          <p *ngIf="items().length === 0 && !errorMessage()" class="nomenclator__hint">Lista este goală.</p>
+
+          <div *ngIf="items().length > 0" class="nomenclator__table-scroll">
+            <table class="nomenclator__table">
+              <thead>
+                <tr>
+                  <th>{{ config.numeLabel }}</th>
+                  <th>Telefon</th>
+                  <th>Email</th>
+                  <th aria-label="Șterge"></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let item of items()">
+                  <td [title]="item.nume">{{ item.nume }}</td>
+                  <td [title]="item.telefon ?? ''">{{ item.telefon }}</td>
+                  <td [title]="item.email ?? ''">{{ item.email }}</td>
+                  <td>
+                    <button
+                      type="button"
+                      class="nomenclator__delete"
+                      [disabled]="deletingId() != null"
+                      (click)="remove(item)"
+                      [title]="'Șterge ' + item.nume"
+                      [attr.aria-label]="'Șterge ' + item.nume"
+                    >
+                      ×
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+      </ng-container>
+    </div>
+  </div>
+</div>
