@@ -29,23 +29,77 @@
       >
         Comenzi pe agenți
       </button>
+      <button
+        type="button"
+        class="raport__menu-item"
+        [class.raport__menu-item--active]="activeReport() === 'pe-obiectiv'"
+        (click)="selectReport('pe-obiectiv')"
+      >
+        Comenzi pe obiectiv
+      </button>
     </nav>
 
     <div class="raport__content" [class.raport__content--empty]="!activeReport()">
       <p *ngIf="!activeReport()" class="raport__hint">Alege un raport din meniu.</p>
 
       <ng-container *ngIf="activeReport()">
+        <!-- Comenzi pe obiectiv: obiectiv required, lucrare and solicitant optional. -->
+        <div *ngIf="activeReport() === 'pe-obiectiv'" class="raport__filters">
+          <label class="raport__filter">
+            <span>Obiectiv<span class="required-marker">*</span></span>
+            <app-combo-select
+              [options]="obiectivOptions()"
+              [loading]="isLoadingFiltre()"
+              [value]="selectedIdObiectiv()"
+              placeholder="Alege aliasul obiectivului"
+              (valueChange)="onObiectivSelected($event)"
+            ></app-combo-select>
+            <span *ngIf="selectedObiectivNume() as nume" class="raport__filter-detail" [title]="nume">{{ nume }}</span>
+          </label>
+          <label class="raport__filter">
+            <span>Lucrare</span>
+            <app-combo-select
+              [options]="lucrareOptions()"
+              [loading]="isLoadingFiltre()"
+              [value]="selectedIdLucrare()"
+              [disabled]="selectedIdObiectiv() == null"
+              placeholder="Toate lucrările"
+              (valueChange)="selectedIdLucrare.set($any($event))"
+            ></app-combo-select>
+          </label>
+          <label class="raport__filter">
+            <span>Solicitant</span>
+            <app-combo-select
+              [options]="solicitantOptions()"
+              [loading]="isLoadingFiltre()"
+              [value]="selectedIdSolicitant()"
+              placeholder="Toți solicitanții"
+              (valueChange)="selectedIdSolicitant.set($any($event))"
+            ></app-combo-select>
+          </label>
+          <button
+            type="button"
+            class="raport__generate-button"
+            [disabled]="selectedIdObiectiv() == null || isLoading()"
+            (click)="generateRaportObiectiv()"
+          >
+            Generează raport
+          </button>
+        </div>
+
         <p *ngIf="isLoading()" class="raport__hint">Se încarcă...</p>
         <p *ngIf="errorMessage()" class="raport__error">{{ errorMessage() }}</p>
 
-        <ng-container *ngIf="!isLoading() && !errorMessage()">
+        <ng-container *ngIf="!isLoading() && !errorMessage() && (activeReport() !== 'pe-obiectiv' || filtruObiectiv())">
           <p *ngIf="rows().length === 0" class="raport__hint">
             {{
               activeReport() === 'nelivrate'
                 ? 'Nu există comenzi nelivrate cu termenul depășit.'
                 : activeReport() === 'pe-agenti'
                   ? 'Nu există comenzi aprovizionate prin agent.'
-                  : 'Nu există comenzi de livrat în următoarele 3 zile lucrătoare.'
+                  : activeReport() === 'pe-obiectiv'
+                    ? 'Nu există comenzi pentru selecția făcută.'
+                    : 'Nu există comenzi de livrat în următoarele 3 zile lucrătoare.'
             }}
           </p>
 
@@ -101,7 +155,56 @@
             </section>
           </ng-container>
 
-          <div *ngIf="activeReport() !== 'pe-agenti' && rows().length > 0" class="raport__table-scroll">
+          <!-- Comenzi pe obiectiv: rows grouped per lucrare, positions numbered from 1 in each. -->
+          <section *ngIf="activeReport() === 'pe-obiectiv' && rows().length > 0" class="raport__agent">
+            <p *ngIf="pdfError()" class="raport__error raport__pdf-error">{{ pdfError() }}</p>
+
+            <header class="raport__agent-header">
+              <h3 class="raport__agent-name">{{ raportObiectivNume() }}</h3>
+              <button
+                type="button"
+                class="raport__pdf-button"
+                [disabled]="isPdfObiectivLoading()"
+                (click)="downloadPdfObiectiv()"
+                title="Descarcă PDF cu raportul afișat"
+              >
+                {{ isPdfObiectivLoading() ? 'Se generează...' : 'Descarcă PDF' }}
+              </button>
+            </header>
+
+            <div class="raport__table-scroll">
+              <table class="raport__table raport__table--obiectiv">
+                <thead>
+                  <tr>
+                    <th>Nr.</th>
+                    <th>Denumire material</th>
+                    <th title="Cantitate">Cant.</th>
+                    <th>U.M.</th>
+                    <th>Solicitant</th>
+                    <th>Observații</th>
+                  </tr>
+                </thead>
+                <tbody *ngFor="let group of lucrareSections()">
+                  <tr class="raport__group-row">
+                    <td colspan="6" [title]="group.lucrare">{{ group.lucrare }}</td>
+                  </tr>
+                  <tr *ngFor="let row of group.rows; let i = index">
+                    <td>{{ i + 1 }}</td>
+                    <td [title]="row.comanda.numeMaterial">{{ row.comanda.numeMaterial }}</td>
+                    <td>{{ row.comanda.cantitate }}</td>
+                    <td>{{ row.comanda.unitateMasura }}</td>
+                    <td [title]="row.solicitant?.numePrenume ?? ''">{{ row.solicitant?.numePrenume }}</td>
+                    <td [title]="row.comanda.observatii">{{ row.comanda.observatii }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <div
+            *ngIf="activeReport() !== 'pe-agenti' && activeReport() !== 'pe-obiectiv' && rows().length > 0"
+            class="raport__table-scroll"
+          >
             <table class="raport__table">
               <thead>
                 <tr>

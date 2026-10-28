@@ -259,6 +259,96 @@
   }
 }
 
+// Comenzi pe obiectiv: Obiectiv / Lucrare / Solicitant pickers + Generează raport, on one line.
+.raport__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.raport__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 240px;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+// The picked obiectiv's full nume under its alias (see .comanda__obiectiv-nume).
+.raport__filter-detail {
+  padding-left: calc(0.7rem + 1px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 0.8;
+}
+
+// Lined up with the comboboxes, below their labels.
+.raport__generate-button {
+  margin-top: calc(0.85rem * 1.2 + 0.35rem);
+  height: 2.5rem;
+  padding: 0 1.2rem;
+  border: none;
+  border-radius: var(--radius);
+  background: rgb(46, 111, 158);
+  color: var(--color-primary-contrast);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    filter: brightness(1.05);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+}
+
+// Nr., Denumire material, Cant., U.M., Solicitant, Observații -- replaces the
+// 10-column widths of the other reports.
+.raport__table--obiectiv {
+  th:nth-child(n),
+  td:nth-child(n) {
+    width: auto;
+    padding-left: 0.4rem;
+    padding-right: 0.4rem;
+  }
+
+  th:nth-child(1),
+  td:nth-child(1) {
+    width: 5%;
+  }
+  th:nth-child(2),
+  td:nth-child(2) {
+    width: 33%;
+  }
+  th:nth-child(3),
+  td:nth-child(3) {
+    width: 8%;
+  }
+  th:nth-child(4),
+  td:nth-child(4) {
+    width: 7%;
+  }
+  th:nth-child(5),
+  td:nth-child(5) {
+    width: 18%;
+  }
+
+  // Lucrare heading above its rows.
+  .raport__group-row td {
+    padding-top: 0.75rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: var(--color-bg);
+  }
+}
+
 .raport__error {
   margin: 0;
   color: var(--color-danger);

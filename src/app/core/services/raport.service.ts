@@ -33,4 +33,34 @@ export class RaportService {
   getPdfAgent(idAgent: number): Observable<Blob> {
     return this.http.get(`${this.config.apiUrl}/comenzi/pe-agenti/${idAgent}/pdf`, { responseType: 'blob' });
   }
+
+  // GET /api/comenzi/pe-obiectiv?idObiectiv=&idLucrare=&idSolicitant= -- toate comenzile
+  // obiectivului, optional doar ale unei lucrari si/sau ale unui solicitant.
+  getComenziPeObiectiv(filtru: FiltruRaportObiectiv): Observable<ComandaTermenRaport[]> {
+    return this.http.get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/pe-obiectiv`, {
+      params: paramsFiltru(filtru),
+    });
+  }
+
+  // GET /api/comenzi/pe-obiectiv/pdf -- raportul de mai sus ca PDF, cate o pagina pe lucrare.
+  getPdfObiectiv(filtru: FiltruRaportObiectiv): Observable<Blob> {
+    return this.http.get(`${this.config.apiUrl}/comenzi/pe-obiectiv/pdf`, {
+      params: paramsFiltru(filtru),
+      responseType: 'blob',
+    });
+  }
+}
+
+export interface FiltruRaportObiectiv {
+  idObiectiv: number;
+  idLucrare: number | null;
+  idSolicitant: number | null;
+}
+
+// Filtrele optionale nealese nu se trimit deloc (backend-ul le trateaza ca "toate").
+function paramsFiltru(filtru: FiltruRaportObiectiv): Record<string, number> {
+  const params: Record<string, number> = { idObiectiv: filtru.idObiectiv };
+  if (filtru.idLucrare != null) params['idLucrare'] = filtru.idLucrare;
+  if (filtru.idSolicitant != null) params['idSolicitant'] = filtru.idSolicitant;
+  return params;
 }
