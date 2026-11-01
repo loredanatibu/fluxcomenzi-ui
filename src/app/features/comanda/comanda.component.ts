@@ -287,7 +287,7 @@ export class ComandaComponent {
   }
 
   // Recepție: what was received before plus what is received now can't exceed what was
-  // ordered, nor -- for a correction (negative) -- drop below 0. Same treatment as the
+  // ordered, nor -- for a correction (negative) -- drop below what went on avize. Same treatment as the
   // obiectiv date range -- the offending value is cleared and the message stays until the
   // next edit.
   validateReceptionat(index: number): void {
@@ -299,8 +299,10 @@ export class ComandaComponent {
     // Rounded so float noise (12.4 - 2.3 = 10.100000000000001) neither shows in the message
     // nor rejects a valid quantity.
     const ramas = roundCantitate(comanda.cantitate - comanda.totalReceptionat);
+    // A correction can't take back what already left on an aviz: at most T, what is still in stock.
+    const corectabil = totalDupaConsum(comanda);
     const value = Number(receptionat);
-    if (receptionat == null || receptionat === '' || (value <= ramas && value >= -comanda.totalReceptionat)) {
+    if (receptionat == null || receptionat === '' || (value <= ramas && value >= -corectabil)) {
       this.receptionatError.set(null);
       return;
     }
@@ -308,7 +310,11 @@ export class ComandaComponent {
     this.receptionatError.set(
       value > ramas
         ? `${comanda.numeMaterial}: se mai pot recepționa cel mult ${ramas} ${comanda.unitateMasura} (comandat ${comanda.cantitate}, recepționat deja ${comanda.totalReceptionat}).`
-        : `${comanda.numeMaterial}: corecția poate scădea cel mult ${comanda.totalReceptionat} ${comanda.unitateMasura} (recepționat până acum).`,
+        : !comanda.consum
+          ? `${comanda.numeMaterial}: corecția poate scădea cel mult ${comanda.totalReceptionat} ${comanda.unitateMasura} (recepționat până acum).`
+          : corectabil > 0
+            ? `${comanda.numeMaterial}: corecția poate scădea cel mult ${corectabil} ${comanda.unitateMasura} (recepționat ${comanda.totalReceptionat}, din care ${comanda.consum} dat pe avize).`
+            : `${comanda.numeMaterial}: nu se mai poate corecta în minus, tot ce s-a recepționat a fost dat pe avize.`,
     );
     control.setValue(null);
   }
