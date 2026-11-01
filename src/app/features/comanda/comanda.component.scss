@@ -427,7 +427,7 @@ $termen-livrare-width: 15rem;
 }
 
 // Solicitant, Material, Cantitate, U.M., Furnizor, Agent, Termen livrare, Recepționat,
-// Observații.
+// T, C, Observații.
 .comanda__table--receptie {
   th:nth-child(1),
   td:nth-child(1) {
@@ -435,7 +435,7 @@ $termen-livrare-width: 15rem;
   }
   th:nth-child(2),
   td:nth-child(2) {
-    width: 15%;
+    width: 13%;
   }
   th:nth-child(3),
   td:nth-child(3) {
@@ -447,11 +447,11 @@ $termen-livrare-width: 15rem;
   }
   th:nth-child(5),
   td:nth-child(5) {
-    width: 11%;
+    width: 10%;
   }
   th:nth-child(6),
   td:nth-child(6) {
-    width: 11%;
+    width: 10%;
   }
   th:nth-child(7),
   td:nth-child(7) {
@@ -459,11 +459,17 @@ $termen-livrare-width: 15rem;
   }
   th:nth-child(8),
   td:nth-child(8) {
-    width: 14%;
+    width: 9%;
   }
   th:nth-child(9),
-  td:nth-child(9) {
-    width: 15%;
+  td:nth-child(9),
+  th:nth-child(10),
+  td:nth-child(10) {
+    width: 5%;
+  }
+  th:nth-child(11),
+  td:nth-child(11) {
+    width: 14%;
     white-space: normal;
   }
 }
@@ -561,27 +567,22 @@ $termen-livrare-width: 15rem;
   font-size: 0.85rem;
 }
 
-// Recepție: the editable quantity with the total received so far (from comenzi_istoric) beside it,
-// each taking half of the cell.
-.comanda__receptionat {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-
-  input {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-}
-
-.comanda__receptionat-total {
-  flex: 1 1 0;
-  min-width: 0;
-  color: var(--color-danger);
+// T: UPDATE rows minus AVIZ rows from comenzi_istoric. C: AVIZ rows alone. Both read-only labels.
+.comanda__total,
+.comanda__consum {
+  display: block;
   font-size: 0.8rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.comanda__total {
+  color: var(--color-danger);
+}
+
+.comanda__consum {
+  color: var(--color-text-muted);
 }
 
 .comanda__field-error {

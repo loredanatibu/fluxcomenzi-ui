@@ -42,9 +42,10 @@ export class RaportService {
     });
   }
 
-  // GET /api/comenzi/pe-obiectiv/pdf -- raportul de mai sus ca PDF, cate o pagina pe lucrare.
-  getPdfObiectiv(filtru: FiltruRaportObiectiv): Observable<Blob> {
-    return this.http.get(`${this.config.apiUrl}/comenzi/pe-obiectiv/pdf`, {
+  // POST /api/comenzi/pe-obiectiv/pdf -- avizul pentru raportul de mai sus, ca PDF, cate o pagina
+  // pe lucrare. Doar pozitiile cu T > 0, livrate integral: backend-ul scrie cate un rand AVIZ.
+  genereazaAvizObiectiv(filtru: FiltruRaportObiectiv): Observable<Blob> {
+    return this.http.post(`${this.config.apiUrl}/comenzi/pe-obiectiv/pdf`, null, {
       params: paramsFiltru(filtru),
       responseType: 'blob',
     });

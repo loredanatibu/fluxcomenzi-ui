@@ -9,7 +9,7 @@ import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { SolicitantService } from '../../core/services/solicitant.service';
 import { FurnizorService } from '../../core/services/furnizor.service';
 import { AgentService } from '../../core/services/agent.service';
-import { Comanda } from '../../core/models/comanda.model';
+import { Comanda, totalDupaConsum } from '../../core/models/comanda.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { DateInputComponent } from '../../shared/date-input/date-input.component';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
@@ -39,6 +39,8 @@ export class ComandaComponent {
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
+
+  readonly totalDupaConsum = totalDupaConsum;
 
   readonly mode = signal<ComandaMode>('create');
   readonly isSubmitting = signal(false);

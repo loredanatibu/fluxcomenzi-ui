@@ -104,7 +104,7 @@
   }
 
   // Obiectiv, Lucrare, Material, Cant., U.M., Furnizor, Email furnizor, Agent,
-  // Termen livrare, R, Observații (takes the rest).
+  // Termen livrare, T (total), C (consum), Observații (takes the rest).
   th:nth-child(1),
   td:nth-child(1) {
     width: 9%;
@@ -131,7 +131,7 @@
   }
   th:nth-child(7),
   td:nth-child(7) {
-    width: 12%;
+    width: 10%;
   }
   th:nth-child(8),
   td:nth-child(8) {
@@ -142,7 +142,9 @@
     width: 12%;
   }
   th:nth-child(10),
-  td:nth-child(10) {
+  td:nth-child(10),
+  th:nth-child(11),
+  td:nth-child(11) {
     width: 5%;
   }
 
@@ -153,13 +155,17 @@
   th:nth-child(9),
   td:nth-child(9),
   th:nth-child(10),
-  td:nth-child(10) {
+  td:nth-child(10),
+  th:nth-child(11),
+  td:nth-child(11) {
     padding-left: 0.3rem;
     padding-right: 0.3rem;
   }
 
   th:nth-child(10),
-  td:nth-child(10) {
+  td:nth-child(10),
+  th:nth-child(11),
+  td:nth-child(11) {
     padding-left: 0.2rem;
   }
 }
@@ -215,8 +221,8 @@
   margin-bottom: 0.75rem;
 }
 
-// Material, Cant., U.M., Furnizor, Termen livrare, Recepționat -- replaces the
-// 10-column widths of the other reports.
+// Material, Cant., U.M., Furnizor, Termen livrare, T, C -- replaces the
+// 11-column widths of the other reports.
 .raport__table--agenti {
   th:nth-child(n),
   td:nth-child(n) {
@@ -227,27 +233,31 @@
 
   th:nth-child(1),
   td:nth-child(1) {
-    width: 30%;
+    width: 27%;
   }
   th:nth-child(2),
   td:nth-child(2) {
-    width: 9%;
+    width: 8%;
   }
   th:nth-child(3),
   td:nth-child(3) {
-    width: 8%;
+    width: 7%;
   }
   th:nth-child(4),
   td:nth-child(4) {
-    width: 25%;
+    width: 22%;
   }
   th:nth-child(5),
   td:nth-child(5) {
-    width: 16%;
+    width: 15%;
   }
   th:nth-child(6),
   td:nth-child(6) {
-    width: 12%;
+    width: 11%;
+  }
+  th:nth-child(7),
+  td:nth-child(7) {
+    width: 10%;
   }
 
   // Obiectiv · Lucrare heading above its rows.
@@ -309,7 +319,7 @@
   }
 }
 
-// Nr., Denumire material, Cant., U.M., Solicitant, Observații -- replaces the
+// Nr., Denumire material, Cant., U.M., T, C, Solicitant, Observații -- replaces the
 // 10-column widths of the other reports.
 .raport__table--obiectiv {
   th:nth-child(n),
@@ -325,7 +335,7 @@
   }
   th:nth-child(2),
   td:nth-child(2) {
-    width: 33%;
+    width: 29%;
   }
   th:nth-child(3),
   td:nth-child(3) {
@@ -336,8 +346,14 @@
     width: 7%;
   }
   th:nth-child(5),
-  td:nth-child(5) {
-    width: 18%;
+  td:nth-child(5),
+  th:nth-child(6),
+  td:nth-child(6) {
+    width: 6%;
+  }
+  th:nth-child(7),
+  td:nth-child(7) {
+    width: 16%;
   }
 
   // Lucrare heading above its rows.

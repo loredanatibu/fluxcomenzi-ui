@@ -220,7 +220,8 @@
                     <th>Furnizor</th>
                     <th>Agent</th>
                     <th>Termen livrare</th>
-                    <th>Recepționat</th>
+                    <th title="Total: recepționat minus consumul de pe avize">T</th>
+                    <th title="Consum pe avize">C</th>
                     <th></th>
                   </tr>
                 </thead>
@@ -259,12 +260,12 @@
                     </td>
                     <!-- Read-only here: the received quantity is only edited in Recepție Comandă. -->
                     <td>
-                      <span
-                        class="comanda__receptionat-total"
-                        title="Total cantități recepționate până în prezent"
-                      >
-                        {{ gridRows[i].totalReceptionat }}
+                      <span class="comanda__total" title="Total: recepționat minus consumul de pe avize">
+                        {{ totalDupaConsum(gridRows[i]) }}
                       </span>
+                    </td>
+                    <td>
+                      <span class="comanda__consum" title="Consum pe avize">{{ gridRows[i].consum }}</span>
                     </td>
                     <td>
                       <button
@@ -295,6 +296,8 @@
                     <th>Agent</th>
                     <th>Termen livrare</th>
                     <th>Recepționat</th>
+                    <th title="Total: recepționat minus consumul de pe avize">T</th>
+                    <th title="Consum pe avize">C</th>
                     <th>Observații</th>
                   </tr>
                 </thead>
@@ -310,21 +313,21 @@
                       <td>{{ c.termenLivrare | date: 'dd.MM.yyyy HH:mm' }}</td>
                     </ng-container>
                     <td>
-                      <div class="comanda__receptionat">
-                        <input
-                          type="number"
-                          formControlName="cantitateReceptionata"
-                          step="1"
-                          title="Cantitatea recepționată acum. Negativ = corecție a unei recepții greșite (cu motivul în Observații)."
-                          (input)="validateReceptionat(i)"
-                        />
-                        <span
-                          class="comanda__receptionat-total"
-                          title="Total cantități recepționate până în prezent"
-                        >
-                          {{ gridRows[i].totalReceptionat }}
-                        </span>
-                      </div>
+                      <input
+                        type="number"
+                        formControlName="cantitateReceptionata"
+                        step="1"
+                        title="Cantitatea recepționată acum. Negativ = corecție a unei recepții greșite (cu motivul în Observații)."
+                        (input)="validateReceptionat(i)"
+                      />
+                    </td>
+                    <td>
+                      <span class="comanda__total" title="Total: recepționat minus consumul de pe avize">
+                        {{ totalDupaConsum(gridRows[i]) }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="comanda__consum" title="Consum pe avize">{{ gridRows[i].consum }}</span>
                     </td>
                     <td>
                       <textarea

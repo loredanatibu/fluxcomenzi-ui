@@ -1,14 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Observable, forkJoin } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
 import { FiltruRaportObiectiv, RaportService } from '../../core/services/raport.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { SolicitantService } from '../../core/services/solicitant.service';
 import { ComandaTermenRaport } from '../../core/models/comanda-termen-raport.model';
+import { totalDupaConsum } from '../../core/models/comanda.model';
 import { ObiectivCuLucrari } from '../../core/models/obiectiv-cu-lucrari.model';
 import { Agent } from '../../core/models/agent.model';
 import { ComboOption, ComboSelectComponent } from '../../shared/combo-select/combo-select.component';
+import { ConfirmDialogService } from '../../shared/confirm-dialog/confirm-dialog.service';
 
 type RaportType = 'nelivrate' | 'termen-3-zile' | 'pe-agenti' | 'pe-obiectiv';
 
@@ -41,6 +44,9 @@ export class RaportComponent {
   private readonly raportService = inject(RaportService);
   private readonly objectiveService = inject(ObjectiveService);
   private readonly solicitantService = inject(SolicitantService);
+  private readonly confirmDialog = inject(ConfirmDialogService);
+
+  readonly totalDupaConsum = totalDupaConsum;
 
   readonly activeReport = signal<RaportType | null>(null);
   readonly isLoading = signal(false);
@@ -89,6 +95,8 @@ export class RaportComponent {
   readonly selectedIdSolicitant = signal<number | null>(null);
   readonly filtruObiectiv = signal<FiltruRaportObiectiv | null>(null);
   readonly isPdfObiectivLoading = signal(false);
+  // The aviz only takes rows with T > 0; without any there is nothing to deliver.
+  readonly areDeLivrat = computed(() => this.rows().some((r) => totalDupaConsum(r.comanda) > 0));
 
   // Obiective are picked by alias (nume when an obiectiv has none), as on Comenzi.
   private readonly aliasByIdObiectiv = signal<ReadonlyMap<number, string | null | undefined>>(new Map());
@@ -159,21 +167,36 @@ export class RaportComponent {
     this.loadReport('pe-obiectiv');
   }
 
-  // Downloads the report shown (its filters, not ones changed since) as a PDF from the backend.
-  downloadPdfObiectiv(): void {
+  // Generates the aviz for the report shown (its filters, not ones changed since): every row with
+  // T > 0 is delivered in full, so the backend records it as consum. The report is then reloaded,
+  // so T drops by what went on the aviz.
+  async genereazaAvizObiectiv(): Promise<void> {
     const filtru = this.filtruObiectiv();
-    if (!filtru || this.isPdfObiectivLoading()) return;
+    if (!filtru || this.isPdfObiectivLoading() || !this.areDeLivrat()) return;
+
+    const confirmed = await this.confirmDialog.ask({
+      title: 'Generează aviz',
+      message: 'Toate pozițiile cu T > 0 se livrează integral și totalul lor devine 0. Continui?',
+      subject: this.raportObiectivNume() ?? undefined,
+      confirmText: 'Generează aviz',
+    });
+    if (!confirmed) return;
 
     this.isPdfObiectivLoading.set(true);
     this.pdfError.set(null);
-    this.raportService.getPdfObiectiv(filtru).subscribe({
+    this.raportService.genereazaAvizObiectiv(filtru).subscribe({
       next: (pdf) => {
         this.isPdfObiectivLoading.set(false);
-        saveFile(pdf, `Comenzi obiectiv - ${this.raportObiectivNume() ?? filtru.idObiectiv}.pdf`);
+        saveFile(pdf, `Aviz obiectiv - ${this.raportObiectivNume() ?? filtru.idObiectiv}.pdf`);
+        this.loadReport('pe-obiectiv');
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.isPdfObiectivLoading.set(false);
-        this.pdfError.set('PDF-ul nu a putut fi generat.');
+        this.pdfError.set(
+          err.status === 400 ? 'Nu există poziții cu T > 0 de livrat pe aviz.' : 'Avizul nu a putut fi generat.',
+        );
+        // Someone else may have delivered in the meantime: show the current totals.
+        this.loadReport('pe-obiectiv');
       },
     });
   }
