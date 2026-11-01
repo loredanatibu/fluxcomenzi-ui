@@ -180,6 +180,38 @@
   padding: 0.4rem 0;
 }
 
+// The lucrare is held by another tab, or this page let it go: the grid below is read-only.
+.comanda__blocare {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #e0b252;
+  border-radius: var(--radius);
+  background: #fff6e0;
+  color: var(--color-text);
+  font-size: 0.9rem;
+}
+
+.comanda__blocare-mesaj {
+  flex: 1;
+}
+
+.comanda__blocare-buton {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  color: var(--color-primary);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(47, 95, 218, 0.08);
+  }
+}
+
 .comanda__table-scroll {
   overflow-x: auto;
   min-width: 0;

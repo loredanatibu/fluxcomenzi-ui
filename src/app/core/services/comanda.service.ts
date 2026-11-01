@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RuntimeConfigService } from './runtime-config.service';
 import { Comanda } from '../models/comanda.model';
+import { HEADER_TOKEN_BLOCARE } from './blocare.service';
 
 export interface ComandaPayload {
   idLucrare: number;
@@ -16,10 +17,18 @@ export interface ComandaPayload {
   observatii: string;
 }
 
-// Recepție Comandă: the quantity received now (not the total) and the comanda's observații.
+// Recepție Comandă, one grid row: the quantity received now (not the total) and the comanda's observații.
 export interface ReceptiePayload {
+  id: number;
   cantitateReceptionata: number;
   observatii: string;
+}
+
+// Actualizare Comandă, one grid row. The id travels next to the fields: the API ignores an id
+// inside a Comanda body.
+export interface ActualizarePayload {
+  id: number;
+  modificari: ComandaPayload;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -39,20 +48,29 @@ export class ComandaService {
     return this.http.post<Comanda>(`${this.config.apiUrl}/comenzi`, comanda);
   }
 
-  // PUT /api/comenzi/{id}/receptie -- Recepție Comandă: logs the quantity received now in
-  // comenzi_istoric, whose sum is the comanda's totalReceptionat.
-  receptioneaza(id: number, receptie: ReceptiePayload): Observable<Comanda> {
-    return this.http.put<Comanda>(`${this.config.apiUrl}/comenzi/${id}/receptie`, receptie);
+  // PUT /api/comenzi/receptie -- Recepție Comandă: every changed grid row in one transaction, all
+  // saved or none. Logs the quantity received now in comenzi_istoric, whose sum is the comanda's
+  // totalReceptionat. tokenBlocare: the tab holding the lucrare (BlocareService); 409 otherwise.
+  receptioneaza(receptii: ReceptiePayload[], tokenBlocare: string): Observable<Comanda[]> {
+    return this.http.put<Comanda[]>(`${this.config.apiUrl}/comenzi/receptie`, receptii, {
+      headers: { [HEADER_TOKEN_BLOCARE]: tokenBlocare },
+    });
   }
 
-  // PUT /api/comenzi/{id}/actualizare -- Actualizare Comandă: only for a comanda with nothing
-  // received yet; saves every field, cantitate included, and logs 0 received in comenzi_istoric.
-  actualizeaza(id: number, comanda: ComandaPayload): Observable<Comanda> {
-    return this.http.put<Comanda>(`${this.config.apiUrl}/comenzi/${id}/actualizare`, comanda);
+  // PUT /api/comenzi/actualizare -- Actualizare Comandă, all rows together like Recepție: only for
+  // comenzi with nothing received yet; saves every field, cantitate included, and logs 0
+  // received in comenzi_istoric.
+  actualizeaza(actualizari: ActualizarePayload[], tokenBlocare: string): Observable<Comanda[]> {
+    return this.http.put<Comanda[]>(`${this.config.apiUrl}/comenzi/actualizare`, actualizari, {
+      headers: { [HEADER_TOKEN_BLOCARE]: tokenBlocare },
+    });
   }
 
-  // DELETE /api/comenzi/{id} -- removes a comanda.
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.config.apiUrl}/comenzi/${id}`);
+  // DELETE /api/comenzi/{id} -- removes a comanda; from Modifică Comandă, so it needs the lucrare's
+  // blocare too.
+  delete(id: number, tokenBlocare: string): Observable<void> {
+    return this.http.delete<void>(`${this.config.apiUrl}/comenzi/${id}`, {
+      headers: { [HEADER_TOKEN_BLOCARE]: tokenBlocare },
+    });
   }
 }

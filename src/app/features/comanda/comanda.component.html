@@ -197,12 +197,29 @@
             Nu există comenzi pentru lucrarea selectată.
           </p>
 
+          <!-- Someone else holds the lucrare, or this page let it go: the grid below is read-only. -->
+          <div
+            *ngIf="blocare.stare() === 'refuzata' || blocare.stare() === 'expirata'"
+            class="comanda__blocare"
+            role="status"
+          >
+            <span class="comanda__blocare-mesaj">{{ blocare.mesaj() }}</span>
+            <button
+              type="button"
+              class="comanda__blocare-buton"
+              (mousedown)="$event.preventDefault()"
+              (click)="blocare.reincearca()"
+            >
+              {{ blocare.stare() === 'expirata' ? 'Reia editarea' : 'Reîncearcă' }}
+            </button>
+          </div>
+
           <ng-container *ngIf="!isLoadingComenzi() && filteredComenzi().length > 0">
             <div class="comanda__grid-toolbar">
               <button
                 type="button"
                 class="comanda__submit"
-                [disabled]="!hasGridChanges() || gridForm.invalid || isSubmitting()"
+                [disabled]="!poateEdita() || !hasGridChanges() || gridForm.invalid || isSubmitting()"
                 (click)="saveGridChanges()"
               >
                 {{ isSubmitting() ? 'Se salvează...' : 'Salvează modificările' }}
@@ -272,7 +289,7 @@
                         type="button"
                         class="comanda__row-remove"
                         (mousedown)="$event.preventDefault()"
-                        [disabled]="isSubmitting() || !canDeleteGridRow(i)"
+                        [disabled]="!poateEdita() || isSubmitting() || !canDeleteGridRow(i)"
                         (click)="deleteGridRow(i)"
                         [title]="canDeleteGridRow(i) ? 'Șterge comanda' : 'Comenzile cu cantitate recepționată nu pot fi șterse'"
                         aria-label="Șterge comanda"

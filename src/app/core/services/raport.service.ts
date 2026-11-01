@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import { RuntimeConfigService } from './runtime-config.service';
+import { HEADER_TOKEN_BLOCARE } from './blocare.service';
 import { ComandaTermenRaport } from '../models/comanda-termen-raport.model';
 
 @Injectable({ providedIn: 'root' })
@@ -35,21 +36,41 @@ export class RaportService {
   }
 
   // GET /api/comenzi/pe-obiectiv?idObiectiv=&idLucrare=&idSolicitant= -- toate comenzile
-  // obiectivului, optional doar ale unei lucrari si/sau ale unui solicitant.
-  getComenziPeObiectiv(filtru: FiltruRaportObiectiv): Observable<ComandaTermenRaport[]> {
-    return this.http.get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/pe-obiectiv`, {
-      params: paramsFiltru(filtru),
-    });
+  // obiectivului, optional doar ale unei lucrari si/sau ale unui solicitant. Header-ul
+  // X-Versiune-Raport e versiunea raportului (ultimul rand din comenzi_istoric al comenzilor
+  // lui), trimisa inapoi la generarea avizului.
+  getComenziPeObiectiv(filtru: FiltruRaportObiectiv): Observable<RaportObiectiv> {
+    return this.http
+      .get<ComandaTermenRaport[]>(`${this.config.apiUrl}/comenzi/pe-obiectiv`, {
+        params: paramsFiltru(filtru),
+        observe: 'response',
+      })
+      .pipe(
+        map((response) => ({
+          comenzi: response.body ?? [],
+          versiune: Number(response.headers.get(HEADER_VERSIUNE_RAPORT) ?? 0),
+        })),
+      );
   }
 
   // POST /api/comenzi/pe-obiectiv/pdf -- avizul pentru raportul de mai sus, ca PDF, cate o pagina
   // pe lucrare. Doar pozitiile cu T > 0, livrate integral: backend-ul scrie cate un rand AVIZ.
-  genereazaAvizObiectiv(filtru: FiltruRaportObiectiv): Observable<Blob> {
+  // tokenBlocare: tab-ul care tine obiectivul (BlocareService). versiune: a raportului afisat --
+  // 409 daca intre timp s-a schimbat ceva pe comenzile lui (o receptie, alt aviz...).
+  genereazaAvizObiectiv(filtru: FiltruRaportObiectiv, versiune: number, tokenBlocare: string): Observable<Blob> {
     return this.http.post(`${this.config.apiUrl}/comenzi/pe-obiectiv/pdf`, null, {
-      params: paramsFiltru(filtru),
+      params: { ...paramsFiltru(filtru), versiune },
+      headers: { [HEADER_TOKEN_BLOCARE]: tokenBlocare },
       responseType: 'blob',
     });
   }
+}
+
+const HEADER_VERSIUNE_RAPORT = 'X-Versiune-Raport';
+
+export interface RaportObiectiv {
+  comenzi: ComandaTermenRaport[];
+  versiune: number;
 }
 
 export interface FiltruRaportObiectiv {

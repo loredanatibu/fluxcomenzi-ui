@@ -1,9 +1,11 @@
 import { Component, ElementRef, Injector, computed, effect, inject, afterNextRender, signal, untracked } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { catchError, forkJoin, map, merge, of } from 'rxjs';
+import { Observable, catchError, forkJoin, map, merge, of } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { BlocareService, mesajConflict } from '../../core/services/blocare.service';
 import { ComandaService, ComandaPayload } from '../../core/services/comanda.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { SolicitantService } from '../../core/services/solicitant.service';
@@ -33,9 +35,15 @@ const REQUIRED_ROW_LABELS: Record<string, string> = {
   imports: [CommonModule, ReactiveFormsModule, DateInputComponent, ComboSelectComponent],
   templateUrl: './comanda.component.html',
   styleUrl: './comanda.component.scss',
+  // One blocare per page instance: its own tab token, handed back when the page is destroyed.
+  providers: [BlocareService],
 })
 export class ComandaComponent {
   private readonly fb = inject(FormBuilder);
+  // Recepție and Modifică lock the chosen lucrare: whoever picks it first edits, the others only
+  // see the grid until they get it (see BlocareService).
+  readonly blocare = inject(BlocareService);
+  readonly poateEdita = computed(() => this.blocare.stare() === 'detinuta');
   private readonly confirmDialog = inject(ConfirmDialogService);
   private readonly host = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly injector = inject(Injector);
@@ -167,6 +175,11 @@ export class ComandaComponent {
 
     this.form.get('idLucrare')!.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
       this.selectedLucrareId.set(value);
+      if (this.isGridMode() && value != null) {
+        this.blocare.cere({ tip: 'lucrari', id: value, mod: this.mode() === 'receptie' ? 'RECEPTIE' : 'MODIFICARE' });
+      } else {
+        this.blocare.preda();
+      }
       if (this.mode() === 'create') {
         if (value != null) {
           this.solicitantGroups.enable();
@@ -187,6 +200,23 @@ export class ComandaComponent {
     effect(() => {
       const rows = this.filteredComenzi();
       untracked(() => this.buildGridForm(rows));
+    });
+
+    // Getting the lucrare reloads its comenzi, so editing starts from what is saved at that
+    // moment -- not from the list loaded before, nor from edits typed before the blocare was
+    // lost (those are dropped). Without it the grid stays read-only.
+    effect(() => {
+      const poateEdita = this.poateEdita();
+      untracked(() => {
+        if (poateEdita) {
+          this.gridForm.clear();
+          this.gridRows = [];
+          this.gridInitialValues = [];
+          this.loadComenzi();
+        } else {
+          this.gridForm.disable({ emitEvent: false });
+        }
+      });
     });
   }
 
@@ -227,8 +257,11 @@ export class ComandaComponent {
       // Actualizare: every shown field, cantitate included, stays editable while nothing was
       // received, and locks as soon as anything was -- the order can't change under what's
       // already delivered. Recepție stays open even when fully received, for corrections.
+      // Without the lucrare's blocare the whole grid is read-only.
       // emitEvent: false so the prinAgent toggle doesn't see the disable and clear the agent.
-      if (this.mode() === 'update' && c.totalReceptionat) group.disable({ emitEvent: false });
+      if ((this.mode() === 'update' && c.totalReceptionat) || !this.poateEdita()) {
+        group.disable({ emitEvent: false });
+      }
       this.gridForm.push(group);
     }
 
@@ -454,39 +487,47 @@ export class ComandaComponent {
       return;
     }
 
-    const updates = this.gridForm.controls
-      .map((group, i) => ({ group, row: this.gridRows[i], changed: this.isGridRowChanged(i) }))
-      .filter(({ changed }) => changed)
-      .map(({ group, row }) => {
-        const v = group.getRawValue();
-        // Only Recepție receives quantities; Actualizare saves the rest with 0 received in the istoric.
-        if (this.mode() === 'receptie') {
-          return this.comandaService.receptioneaza(row.id, {
-            cantitateReceptionata: Number(v.cantitateReceptionata),
-            observatii: v.observatii ?? '',
-          });
-        }
-        const payload: ComandaPayload = {
-          idLucrare: row.idLucrare,
-          idSolicitant: Number(v.idSolicitant),
-          idFurnizor: Number(v.idFurnizor),
-          idAgent: v.prinAgent ? Number(v.idAgent) : null,
-          numeMaterial: v.numeMaterial,
-          cantitate: Number(v.cantitate),
-          unitateMasura: v.unitateMasura,
-          termenLivrare: v.termenLivrare,
-          observatii: v.observatii ?? '',
-        };
-        return this.comandaService.actualizeaza(row.id, payload);
-      });
+    const changed = this.gridForm.controls
+      .map((group, i) => ({ v: group.getRawValue(), row: this.gridRows[i], changed: this.isGridRowChanged(i) }))
+      .filter(({ changed }) => changed);
 
-    if (updates.length === 0) return;
+    if (changed.length === 0) return;
+
+    // One request for every changed row: the API saves them all in one transaction, or none.
+    // Only Recepție receives quantities; Actualizare saves the rest with 0 received in the istoric.
+    const save: Observable<unknown> =
+      this.mode() === 'receptie'
+        ? this.comandaService.receptioneaza(
+            changed.map(({ v, row }) => ({
+              id: row.id,
+              cantitateReceptionata: Number(v.cantitateReceptionata),
+              observatii: v.observatii ?? '',
+            })),
+            this.blocare.token,
+          )
+        : this.comandaService.actualizeaza(
+            changed.map(({ v, row }) => {
+              const modificari: ComandaPayload = {
+                idLucrare: row.idLucrare,
+                idSolicitant: Number(v.idSolicitant),
+                idFurnizor: Number(v.idFurnizor),
+                idAgent: v.prinAgent ? Number(v.idAgent) : null,
+                numeMaterial: v.numeMaterial,
+                cantitate: Number(v.cantitate),
+                unitateMasura: v.unitateMasura,
+                termenLivrare: v.termenLivrare,
+                observatii: v.observatii ?? '',
+              };
+              return { id: row.id, modificari };
+            }),
+            this.blocare.token,
+          );
 
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.isSubmitting.set(true);
 
-    forkJoin(updates).subscribe({
+    save.subscribe({
       next: async () => {
         this.isSubmitting.set(false);
         // Saved: the reload in resetForm() should replace these rows, not keep them as unsaved edits.
@@ -495,9 +536,12 @@ export class ComandaComponent {
         await this.confirmDialog.notifySaved();
         this.resetForm();
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
         this.errorMessage.set('Comenzile nu au putut fi actualizate.');
+        // 409: the blocare was lost meanwhile; the reason shows above the grid.
+        const conflict = mesajConflict(err);
+        if (conflict) this.blocare.pierde(conflict);
       },
     });
   }
@@ -526,15 +570,17 @@ export class ComandaComponent {
     this.successMessage.set(null);
     this.isSubmitting.set(true);
 
-    this.comandaService.delete(comanda.id).subscribe({
+    this.comandaService.delete(comanda.id, this.blocare.token).subscribe({
       next: () => {
         this.isSubmitting.set(false);
         this.successMessage.set('Comanda a fost ștearsă.');
         this.comenzi.set(this.comenzi().filter((c) => c.id !== comanda.id));
       },
-      error: () => {
+      error: (err: HttpErrorResponse) => {
         this.isSubmitting.set(false);
         this.errorMessage.set('Comanda nu a putut fi ștearsă.');
+        const conflict = mesajConflict(err);
+        if (conflict) this.blocare.pierde(conflict);
       },
     });
   }
@@ -563,6 +609,8 @@ export class ComandaComponent {
   // switching modes and after every successful save.
   private resetForm(): void {
     const mode = this.mode();
+    // No lucrare is selected any more, so the one held (if any) goes back.
+    this.blocare.preda();
     this.errorMessage.set(null);
     this.successMessage.set(null);
     this.receptionatError.set(null);

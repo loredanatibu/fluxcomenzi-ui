@@ -87,6 +87,18 @@
           </button>
         </div>
 
+        <!-- Someone else holds the obiectiv, or this page let it go: the report can be viewed, no aviz. -->
+        <div
+          *ngIf="activeReport() === 'pe-obiectiv' && (blocare.stare() === 'refuzata' || blocare.stare() === 'expirata')"
+          class="raport__blocare"
+          role="status"
+        >
+          <span class="raport__blocare-mesaj">{{ blocare.mesaj() }}</span>
+          <button type="button" class="raport__blocare-buton" (click)="blocare.reincearca()">
+            {{ blocare.stare() === 'expirata' ? 'Reia editarea' : 'Reîncearcă' }}
+          </button>
+        </div>
+
         <p *ngIf="isLoading()" class="raport__hint">Se încarcă...</p>
         <p *ngIf="errorMessage()" class="raport__error">{{ errorMessage() }}</p>
 
@@ -166,9 +178,13 @@
               <button
                 type="button"
                 class="raport__pdf-button"
-                [disabled]="isPdfObiectivLoading() || !areDeLivrat()"
+                [disabled]="!poateGeneraAviz() || isPdfObiectivLoading() || !areDeLivrat()"
                 (click)="genereazaAvizObiectiv()"
-                title="Generează avizul (PDF) pentru pozițiile cu T > 0"
+                [title]="
+                  poateGeneraAviz()
+                    ? 'Generează avizul (PDF) pentru pozițiile cu T > 0'
+                    : 'Avizul se generează doar pentru obiectivul ales, după Generează raport, cât timp nu e deschis în altă parte'
+                "
               >
                 {{ isPdfObiectivLoading() ? 'Se generează...' : 'Generează aviz' }}
               </button>

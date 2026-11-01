@@ -1,8 +1,9 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal, untracked } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Observable, forkJoin } from 'rxjs';
+import { Observable, forkJoin, map, tap } from 'rxjs';
 import { AuthService } from '../../core/services/auth.service';
+import { BlocareService } from '../../core/services/blocare.service';
 import { FiltruRaportObiectiv, RaportService } from '../../core/services/raport.service';
 import { ObjectiveService } from '../../core/services/obiectiv.service';
 import { SolicitantService } from '../../core/services/solicitant.service';
@@ -39,8 +40,13 @@ interface LucrareObiectivSection {
   imports: [CommonModule, ComboSelectComponent],
   templateUrl: './raport.component.html',
   styleUrl: './raport.component.scss',
+  // One blocare per page instance: its own tab token, handed back when the page is destroyed.
+  providers: [BlocareService],
 })
 export class RaportComponent {
+  // Comenzi pe obiectiv locks the chosen obiectiv, whatever the other filters: whoever picks it
+  // first generates avize on it, the others only see the report (see BlocareService).
+  readonly blocare = inject(BlocareService);
   private readonly raportService = inject(RaportService);
   private readonly objectiveService = inject(ObjectiveService);
   private readonly solicitantService = inject(SolicitantService);
@@ -97,6 +103,13 @@ export class RaportComponent {
   readonly isPdfObiectivLoading = signal(false);
   // The aviz only takes rows with T > 0; without any there is nothing to deliver.
   readonly areDeLivrat = computed(() => this.rows().some((r) => totalDupaConsum(r.comanda) > 0));
+  // Version of the report shown (X-Versiune-Raport), sent back with the aviz.
+  private readonly versiuneRaport = signal(0);
+  // The shown report must be of the obiectiv this page holds: after picking another obiectiv,
+  // the old report stays on screen until "Generează raport", but no aviz from it.
+  readonly poateGeneraAviz = computed(
+    () => this.blocare.stare() === 'detinuta' && this.filtruObiectiv()?.idObiectiv === this.selectedIdObiectiv(),
+  );
 
   // Obiective are picked by alias (nume when an obiectiv has none), as on Comenzi.
   private readonly aliasByIdObiectiv = signal<ReadonlyMap<number, string | null | undefined>>(new Map());
@@ -128,7 +141,16 @@ export class RaportComponent {
     return [...byLucrare.values()].sort((a, b) => compareText(a.lucrare, b.lucrare));
   });
 
-  constructor(readonly authService: AuthService) {}
+  constructor(readonly authService: AuthService) {
+    // Getting the obiectiv (also after "Reîncearcă") reloads the report shown for it, so the
+    // aviz starts from what is saved at that moment and with its current version.
+    effect(() => {
+      const poateGeneraAviz = this.poateGeneraAviz();
+      untracked(() => {
+        if (poateGeneraAviz && this.activeReport() === 'pe-obiectiv') this.loadReport('pe-obiectiv');
+      });
+    });
+  }
 
   selectReport(report: RaportType): void {
     if (this.activeReport() === report) return;
@@ -144,12 +166,25 @@ export class RaportComponent {
     } else {
       this.loadReport(report);
     }
+    this.syncBlocare();
   }
 
   onObiectivSelected(value: number | string | null): void {
-    this.selectedIdObiectiv.set(value as number | null);
+    this.selectedIdObiectiv.set(value == null ? null : Number(value));
     // The lucrare list belongs to the obiectiv, so a lucrare of the previous one can't stay picked.
     this.selectedIdLucrare.set(null);
+    this.syncBlocare();
+  }
+
+  // The chosen obiectiv is held only while Comenzi pe obiectiv is open; any other report, or no
+  // obiectiv, hands it back.
+  private syncBlocare(): void {
+    const idObiectiv = this.selectedIdObiectiv();
+    if (this.activeReport() === 'pe-obiectiv' && idObiectiv != null) {
+      this.blocare.cere({ tip: 'obiective', id: idObiectiv });
+    } else {
+      this.blocare.preda();
+    }
   }
 
   generateRaportObiectiv(): void {
@@ -172,7 +207,7 @@ export class RaportComponent {
   // so T drops by what went on the aviz.
   async genereazaAvizObiectiv(): Promise<void> {
     const filtru = this.filtruObiectiv();
-    if (!filtru || this.isPdfObiectivLoading() || !this.areDeLivrat()) return;
+    if (!filtru || this.isPdfObiectivLoading() || !this.areDeLivrat() || !this.poateGeneraAviz()) return;
 
     const confirmed = await this.confirmDialog.ask({
       title: 'Generează aviz',
@@ -184,17 +219,23 @@ export class RaportComponent {
 
     this.isPdfObiectivLoading.set(true);
     this.pdfError.set(null);
-    this.raportService.genereazaAvizObiectiv(filtru).subscribe({
+    this.raportService.genereazaAvizObiectiv(filtru, this.versiuneRaport(), this.blocare.token).subscribe({
       next: (pdf) => {
         this.isPdfObiectivLoading.set(false);
         saveFile(pdf, `Aviz obiectiv - ${this.raportObiectivNume() ?? filtru.idObiectiv}.pdf`);
         this.loadReport('pe-obiectiv');
       },
-      error: (err: HttpErrorResponse) => {
+      error: async (err: HttpErrorResponse) => {
         this.isPdfObiectivLoading.set(false);
+        // The response was asked for as a PDF, so even the 409 reason arrives as a Blob.
+        const conflict = err.status === 409 && err.error instanceof Blob ? await err.error.text() : null;
         this.pdfError.set(
-          err.status === 400 ? 'Nu există poziții cu T > 0 de livrat pe aviz.' : 'Avizul nu a putut fi generat.',
+          conflict ??
+            (err.status === 400 ? 'Nu există poziții cu T > 0 de livrat pe aviz.' : 'Avizul nu a putut fi generat.'),
         );
+        // A 409 is either a changed report (the obiectiv is still held) or a lost blocare: asking
+        // for it again tells them apart -- held, it reloads the report; lost, the banner shows why.
+        if (conflict) this.blocare.reincearca();
         // Someone else may have delivered in the meantime: show the current totals.
         this.loadReport('pe-obiectiv');
       },
@@ -221,11 +262,18 @@ export class RaportComponent {
 
   private loadReport(report: RaportType): void {
     const filtru = this.filtruObiectiv();
+    if (report === 'pe-obiectiv' && !filtru) return;
+
+    let versiune = 0;
     const requests: Record<RaportType, () => Observable<ComandaTermenRaport[]>> = {
       nelivrate: () => this.raportService.getComenziNelivrate(),
       'termen-3-zile': () => this.raportService.getComenziTermen3ZileLucratoare(),
       'pe-agenti': () => this.raportService.getComenziPeAgenti(),
-      'pe-obiectiv': () => this.raportService.getComenziPeObiectiv(filtru!),
+      'pe-obiectiv': () =>
+        this.raportService.getComenziPeObiectiv(filtru!).pipe(
+          tap((raport) => (versiune = raport.versiune)),
+          map((raport) => raport.comenzi),
+        ),
     };
     const request = requests[report]();
     // A slower response for a report the user already switched away from (or regenerated
@@ -237,6 +285,7 @@ export class RaportComponent {
       next: (list) => {
         if (isStale()) return;
         this.rows.set(list);
+        this.versiuneRaport.set(versiune);
         this.isLoading.set(false);
       },
       error: () => {
